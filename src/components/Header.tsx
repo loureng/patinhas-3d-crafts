@@ -160,4 +160,4 @@ const Header = () => {
   );
 };
 
-export default Header;
+export default Header; // Fixed export
