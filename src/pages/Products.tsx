@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Filter, Grid, List, ChevronDown } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -20,30 +20,47 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  image_url: string;
+  category: string;
+  rating: number;
+  customizable: boolean;
+  stock: number;
+  review_count: number;
+}
 
 const Products = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState("relevance");
   const [priceRange, setPriceRange] = useState([0, 200]);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock products data
-  const products = [
-    {
-      id: "1",
-      name: "Comedouro Personalizado para Cães",
-      price: 45.90,
-      originalPrice: 59.90,
-      image: "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=400&h=400&fit=crop",
-      rating: 4.8,
-      reviewCount: 124,
-      isCustomizable: true,
-      isNew: true,
-      inStock: true,
-      category: "pets",
-    },
-    // ... more products would be here
-  ];
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const categories = [
     { name: "Pets", count: 150 },
@@ -246,20 +263,33 @@ const Products = () => {
             </div>
 
             {/* Products Grid */}
-            <div className={`grid gap-6 ${
-              viewMode === "grid" 
-                ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" 
-                : "grid-cols-1"
-            }`}>
-              {products.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  {...product}
-                  onAddToCart={(id) => console.log("Add to cart:", id)}
-                  onToggleWishlist={(id) => console.log("Toggle wishlist:", id)}
-                />
-              ))}
-            </div>
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+              </div>
+            ) : (
+              <div className={`grid gap-6 ${
+                viewMode === "grid" 
+                  ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" 
+                  : "grid-cols-1"
+              }`}>
+                {products.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    id={product.id}
+                    name={product.name}
+                    price={product.price}
+                    image={product.image_url}
+                    rating={product.rating}
+                    reviewCount={product.review_count}
+                    isCustomizable={product.customizable}
+                    inStock={product.stock > 0}
+                    onAddToCart={(id) => console.log("Add to cart:", id)}
+                    onToggleWishlist={(id) => console.log("Toggle wishlist:", id)}
+                  />
+                ))}
+              </div>
+            )}
 
             {/* Pagination */}
             <div className="flex justify-center mt-12">

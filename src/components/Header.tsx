@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Search, ShoppingCart, User, Heart, Menu, X } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Search, ShoppingCart, User, Heart, Menu, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -8,12 +8,17 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [cartItemsCount] = useState(3); // Mock data
+  const { user, signOut } = useAuth();
+  const { itemCount } = useCart();
+  const navigate = useNavigate();
 
   const categories = [
     { name: "Pets", href: "/pets" },
@@ -86,11 +91,16 @@ const Header = () => {
             </Button>
 
             {/* Cart */}
-            <Button variant="ghost" size="icon" className="relative">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="relative"
+              onClick={() => navigate('/cart')}
+            >
               <ShoppingCart className="h-5 w-5" />
-              {cartItemsCount > 0 && (
+              {itemCount > 0 && (
                 <Badge className="absolute -top-2 -right-2 px-1 min-w-[18px] h-[18px] text-xs">
-                  {cartItemsCount}
+                  {itemCount}
                 </Badge>
               )}
             </Button>
@@ -103,10 +113,30 @@ const Header = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem>Entrar</DropdownMenuItem>
-                <DropdownMenuItem>Criar conta</DropdownMenuItem>
-                <DropdownMenuItem>Meus pedidos</DropdownMenuItem>
-                <DropdownMenuItem>Lista de desejos</DropdownMenuItem>
+                {user ? (
+                  <>
+                    <DropdownMenuItem onClick={() => navigate('/account')}>
+                      Minha conta
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/account')}>
+                      Meus pedidos
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={signOut}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sair
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <>
+                    <DropdownMenuItem onClick={() => navigate('/auth')}>
+                      Entrar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/auth')}>
+                      Criar conta
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ProductCard from "./ProductCard";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Filter } from "lucide-react";
@@ -9,111 +9,62 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { Link } from "react-router-dom";
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  image_url: string;
+  category: string;
+  rating: number;
+  customizable: boolean;
+  stock: number;
+  review_count: number;
+}
 
 const FeaturedProducts = () => {
   const [filter, setFilter] = useState("todos");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - in a real app, this would come from an API
-  const products = [
-    {
-      id: "1",
-      name: "Comedouro Personalizado para Cães",
-      price: 45.90,
-      originalPrice: 59.90,
-      image: "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=400&h=400&fit=crop",
-      rating: 4.8,
-      reviewCount: 124,
-      isCustomizable: true,
-      isNew: true,
-      inStock: true,
-      category: "pets",
-    },
-    {
-      id: "2",
-      name: "Vaso Suspenso para Suculentas",
-      price: 32.50,
-      image: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=400&h=400&fit=crop",
-      rating: 4.6,
-      reviewCount: 89,
-      isCustomizable: false,
-      inStock: true,
-      category: "jardim",
-    },
-    {
-      id: "3",
-      name: "Porta-chaves Personalizado - Casa",
-      price: 28.90,
-      originalPrice: 35.90,
-      image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop",
-      rating: 4.9,
-      reviewCount: 156,
-      isCustomizable: true,
-      inStock: true,
-      category: "casa",
-    },
-    {
-      id: "4",
-      name: "Brinquedo Interativo para Gatos",
-      price: 52.90,
-      image: "https://images.unsplash.com/photo-1574144611937-0df059b5ef3e?w=400&h=400&fit=crop",
-      rating: 4.7,
-      reviewCount: 67,
-      isCustomizable: true,
-      isNew: true,
-      inStock: true,
-      category: "pets",
-    },
-    {
-      id: "5",
-      name: "Luminária LED Personalizada",
-      price: 89.90,
-      originalPrice: 109.90,
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
-      rating: 4.8,
-      reviewCount: 203,
-      isCustomizable: true,
-      inStock: true,
-      category: "casa",
-    },
-    {
-      id: "6",
-      name: "Regador Automático 3D",
-      price: 76.50,
-      image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=400&fit=crop",
-      rating: 4.5,
-      reviewCount: 45,
-      isCustomizable: false,
-      inStock: true,
-      category: "jardim",
-    },
-    {
-      id: "7",
-      name: "Coleira Personalizada com Nome",
-      price: 39.90,
-      image: "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400&h=400&fit=crop",
-      rating: 4.9,
-      reviewCount: 312,
-      isCustomizable: true,
-      inStock: true,
-      category: "pets",
-    },
-    {
-      id: "8",
-      name: "Organizador de Mesa 3D",
-      price: 42.90,
-      originalPrice: 52.90,
-      image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=400&fit=crop",
-      rating: 4.6,
-      reviewCount: 91,
-      isCustomizable: true,
-      inStock: false,
-      category: "casa",
-    },
-  ];
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
+  const fetchProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .limit(8)
+        .order('rating', { ascending: false });
+
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Transform products to match ProductCard props
+  const transformedProducts = products.map(product => ({
+    id: product.id,
+    name: product.name,
+    price: product.price,
+    image: product.image_url,
+    rating: product.rating,
+    reviewCount: product.review_count,
+    isCustomizable: product.customizable,
+    inStock: product.stock > 0,
+    category: product.category,
+  }));
   const filteredProducts = filter === "todos" 
-    ? products 
-    : products.filter(product => product.category === filter);
+    ? transformedProducts 
+    : transformedProducts.filter(product => product.category === filter);
 
   const handleAddToCart = (id: string) => {
     console.log("Added to cart:", id);
@@ -170,14 +121,16 @@ const FeaturedProducts = () => {
 
         {/* Show more button */}
         <div className="text-center">
-          <Button 
-            size="lg" 
-            variant="outline" 
-            className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-          >
-            Ver Todos os Produtos
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
+          <Link to="/products">
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+            >
+              Ver Todos os Produtos
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </Link>
         </div>
 
         {/* Stats */}
