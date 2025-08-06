@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/contexts/CartContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Header } from '@/components/Header';
+import Header from '@/components/Header';
 import { ArrowLeft, Star, Truck, Shield, RotateCcw } from 'lucide-react';
 
 interface Product {
@@ -41,7 +41,7 @@ const ProductDetail = () => {
     const fetchProduct = async () => {
       if (!id) return;
       
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('products')
         .select('*')
         .eq('id', id)

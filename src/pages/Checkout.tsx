@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Header } from '@/components/Header';
+import Header from '@/components/Header';
 import { toast } from '@/hooks/use-toast';
 
 const Checkout = () => {
@@ -37,7 +37,7 @@ const Checkout = () => {
 
     try {
       // Create order
-      const { data: order, error: orderError } = await supabase
+      const { data: order, error: orderError } = await (supabase as any)
         .from('orders')
         .insert({
           user_id: user.id,
@@ -48,18 +48,18 @@ const Checkout = () => {
         .select()
         .single();
 
-      if (orderError) throw orderError;
+      if (orderError || !order) throw orderError;
 
       // Create order items
       const orderItems = items.map(item => ({
-        order_id: order.id,
+        order_id: (order as any).id,
         product_id: item.id,
         quantity: item.quantity,
         price: item.price,
         customization: item.customization
       }));
 
-      const { error: itemsError } = await supabase
+      const { error: itemsError } = await (supabase as any)
         .from('order_items')
         .insert(orderItems);
 
@@ -68,7 +68,7 @@ const Checkout = () => {
       clearCart();
       toast({
         title: "Pedido realizado com sucesso!",
-        description: `Pedido #${order.id.slice(0, 8)} foi criado. Você receberá um email de confirmação.`
+        description: `Pedido #${(order as any)?.id.slice(0, 8)} foi criado. Você receberá um email de confirmação.`
       });
       navigate('/account/orders');
     } catch (error) {

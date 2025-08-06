@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
-import { Header } from '@/components/Header';
+import Header from '@/components/Header';
 
 const Cart = () => {
   const { items, updateQuantity, removeItem, total, clearCart } = useCart();

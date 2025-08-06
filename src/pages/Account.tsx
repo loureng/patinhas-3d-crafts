@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Header } from '@/components/Header';
+import Header from '@/components/Header';
 import { Package, User, Settings } from 'lucide-react';
 
 interface Order {
@@ -32,7 +32,7 @@ const Account = () => {
     const fetchOrders = async () => {
       if (!user) return;
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('orders')
         .select('*')
         .eq('user_id', user.id)
