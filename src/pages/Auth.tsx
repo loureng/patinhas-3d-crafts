@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { Chrome } from 'lucide-react';
+import Header from '@/components/Header';
 
 const Auth = () => {
   const { user, signInWithGoogle, loading } = useAuth();
@@ -24,7 +25,9 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary/20 p-4">
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="min-h-[calc(100vh-80px)] flex items-center justify-center bg-gradient-to-br from-background to-secondary/20 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Bem-vindo</CardTitle>
@@ -52,6 +55,7 @@ const Auth = () => {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };
