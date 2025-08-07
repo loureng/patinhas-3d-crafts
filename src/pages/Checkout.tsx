@@ -37,7 +37,7 @@ const Checkout = () => {
 
     try {
       // Create order
-      const { data: order, error: orderError } = await (supabase as any)
+      const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
           user_id: user.id,
@@ -52,14 +52,14 @@ const Checkout = () => {
 
       // Create order items
       const orderItems = items.map(item => ({
-        order_id: (order as any).id,
+        order_id: order.id,
         product_id: item.id,
         quantity: item.quantity,
         price: item.price,
         customization: item.customization
       }));
 
-      const { error: itemsError } = await (supabase as any)
+      const { error: itemsError } = await supabase
         .from('order_items')
         .insert(orderItems);
 
@@ -68,7 +68,7 @@ const Checkout = () => {
       clearCart();
       toast({
         title: "Pedido realizado com sucesso!",
-        description: `Pedido #${(order as any)?.id.slice(0, 8)} foi criado. Você receberá um email de confirmação.`
+        description: `Pedido #${order.id.slice(0, 8)} foi criado. Você receberá um email de confirmação.`
       });
       navigate('/account/orders');
     } catch (error) {

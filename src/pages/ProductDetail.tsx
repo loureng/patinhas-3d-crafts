@@ -19,8 +19,8 @@ interface Product {
   price: number;
   category: string;
   image_url: string;
-  is_customizable: boolean;
-  stock_quantity: number;
+  customizable: boolean;
+  stock: number;
   rating: number;
   review_count: number;
 }
@@ -41,11 +41,11 @@ const ProductDetail = () => {
     const fetchProduct = async () => {
       if (!id) return;
       
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching product:', error);
@@ -66,7 +66,7 @@ const ProductDetail = () => {
       name: product.name,
       price: product.price,
       image: product.image_url,
-      customization: product.is_customizable ? customization : undefined
+      customization: product.customizable ? customization : undefined
     };
 
     addItem(cartItem);
@@ -144,7 +144,7 @@ const ProductDetail = () => {
 
             <p className="text-xl font-bold text-primary">R$ {product.price.toFixed(2)}</p>
 
-            {product.is_customizable && (
+            {product.customizable && (
               <Card>
                 <CardContent className="p-6">
                   <h3 className="font-semibold mb-4">Personalização</h3>
@@ -197,9 +197,9 @@ const ProductDetail = () => {
               size="lg" 
               className="w-full"
               onClick={handleAddToCart}
-              disabled={product.stock_quantity === 0}
+              disabled={product.stock === 0}
             >
-              {product.stock_quantity === 0 ? 'Fora de Estoque' : 'Adicionar ao Carrinho'}
+              {product.stock === 0 ? 'Fora de Estoque' : 'Adicionar ao Carrinho'}
             </Button>
 
             <div className="grid grid-cols-3 gap-4 text-center">
@@ -242,11 +242,11 @@ const ProductDetail = () => {
                   </div>
                   <div className="flex justify-between">
                     <span>Personalizável:</span>
-                    <span>{product.is_customizable ? 'Sim' : 'Não'}</span>
+                    <span>{product.customizable ? 'Sim' : 'Não'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Estoque:</span>
-                    <span>{product.stock_quantity} unidades</span>
+                    <span>{product.stock} unidades</span>
                   </div>
                 </div>
               </CardContent>

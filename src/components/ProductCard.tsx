@@ -16,8 +16,8 @@ interface ProductCardProps {
   isCustomizable?: boolean;
   isNew?: boolean;
   inStock: boolean;
-  onAddToCart?: (id: string) => void;
-  onToggleWishlist?: (id: string) => void;
+  onAddToCart?: () => void;
+  onToggleWishlist?: () => void;
   isInWishlist?: boolean;
 }
 
@@ -48,20 +48,18 @@ const ProductCard = ({
         price,
         image
       });
-      onAddToCart?.(id);
+      onAddToCart?.();
     }
   };
 
   const handleToggleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (onToggleWishlist) {
-      onToggleWishlist(id);
-    }
+    onToggleWishlist?.();
   };
 
   return (
-    <Link to={`/products/${id}`} className="block">
+    <Link to={`/produto/${id}`} className="block">
       <Card className="group relative overflow-hidden border-border hover:shadow-elegant transition-all duration-300 hover:scale-[1.02]">
         <div className="relative">
           {/* Product Image */}

@@ -13,6 +13,7 @@ import Checkout from "./pages/Checkout";
 import Account from "./pages/Account";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -29,9 +30,21 @@ const App = () => (
               <Route path="/produtos" element={<Products />} />
               <Route path="/produto/:id" element={<ProductDetail />} />
               <Route path="/carrinho" element={<Cart />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/conta" element={<Account />} />
-              <Route path="/account/orders" element={<Account />} />
+              <Route path="/checkout" element={
+                <ProtectedRoute>
+                  <Checkout />
+                </ProtectedRoute>
+              } />
+              <Route path="/conta" element={
+                <ProtectedRoute>
+                  <Account />
+                </ProtectedRoute>
+              } />
+              <Route path="/account/orders" element={
+                <ProtectedRoute>
+                  <Account />
+                </ProtectedRoute>
+              } />
               <Route path="/auth" element={<Auth />} />
               <Route path="/pets" element={<Products />} />
               <Route path="/casa" element={<Products />} />

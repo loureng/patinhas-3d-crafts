@@ -284,8 +284,8 @@ const Products = () => {
                     reviewCount={product.review_count}
                     isCustomizable={product.customizable}
                     inStock={product.stock > 0}
-                    onAddToCart={(id) => console.log("Add to cart:", id)}
-                    onToggleWishlist={(id) => console.log("Toggle wishlist:", id)}
+                    onAddToCart={() => {}}
+                    onToggleWishlist={() => {}}
                   />
                 ))}
               </div>

@@ -113,15 +113,15 @@ const FeaturedProducts = () => {
             <ProductCard
               key={product.id}
               {...product}
-              onAddToCart={handleAddToCart}
-              onToggleWishlist={handleToggleWishlist}
+              onAddToCart={() => handleAddToCart(product.id)}
+              onToggleWishlist={() => handleToggleWishlist(product.id)}
             />
           ))}
         </div>
 
         {/* Show more button */}
         <div className="text-center">
-          <Link to="/products">
+          <Link to="/produtos">
             <Button 
               size="lg" 
               variant="outline" 
