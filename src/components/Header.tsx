@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Search, ShoppingCart, User, Heart, Menu, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,9 +16,18 @@ import { useCart } from "@/contexts/CartContext";
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { user, signOut } = useAuth();
   const { itemCount } = useCart();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/produtos?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   const categories = [
     { name: "Pets", href: "/pets" },
@@ -66,13 +75,15 @@ const Header = () => {
 
           {/* Search Bar - Desktop */}
           <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
-            <div className="relative w-full">
+            <form onSubmit={handleSearch} className="relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Buscar produtos..."
                 className="pl-10 w-full"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
-            </div>
+            </form>
           </div>
 
           {/* Right side actions */}
@@ -161,13 +172,15 @@ const Header = () => {
           <div className="md:hidden border-t border-border py-4 animate-slide-up">
             <div className="flex flex-col space-y-4">
               {/* Mobile search */}
-              <div className="relative">
+              <form onSubmit={handleSearch} className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   placeholder="Buscar produtos..."
                   className="pl-10 w-full"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
-              </div>
+              </form>
 
               {/* Mobile navigation */}
               <nav className="flex flex-col space-y-2">

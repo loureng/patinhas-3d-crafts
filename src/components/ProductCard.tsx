@@ -60,7 +60,7 @@ const ProductCard = ({
 
   return (
     <Link to={`/produto/${id}`} className="block">
-      <Card className="group relative overflow-hidden border-border hover:shadow-elegant transition-all duration-300 hover:scale-[1.02]">
+      <Card className="group relative overflow-hidden border-border hover:shadow-elegant transition-all duration-300 hover:scale-[1.02] shadow-card">
         <div className="relative">
           {/* Product Image */}
           <div className="aspect-square overflow-hidden bg-muted/30">
@@ -79,8 +79,8 @@ const ProductCard = ({
               </Badge>
             )}
             {isCustomizable && (
-              <Badge className="bg-gradient-primary text-primary-foreground">
-                Personalizável
+              <Badge className="bg-gradient-primary text-primary-foreground shadow-glow animate-bounce-subtle">
+                ✨ Personalizável
               </Badge>
             )}
             {!inStock && (

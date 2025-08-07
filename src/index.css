@@ -18,13 +18,13 @@ All colors MUST be HSL.
     --popover-foreground: 0 0% 13%;
 
     /* Jardim das Patinhas Brand Colors */
-    --primary: 27 100% 50%; /* Orange #FF9800 */
+    --primary: 30 100% 50%; /* Orange #FF9800 */
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 33 100% 60%; /* Lighter orange */
+    --primary-glow: 35 100% 65%; /* Lighter orange for hover */
 
-    --secondary: 104 48% 45%; /* Green #4CAF50 */
+    --secondary: 104 51% 45%; /* Green #4CAF50 */
     --secondary-foreground: 0 0% 100%;
-    --secondary-glow: 104 48% 55%;
+    --secondary-glow: 104 51% 55%;
 
     --muted: 0 0% 96%;
     --muted-foreground: 0 0% 45%;
@@ -44,9 +44,12 @@ All colors MUST be HSL.
     /* Custom design tokens */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
     --gradient-secondary: linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--secondary-glow)));
-    --shadow-glow: 0 4px 20px hsl(var(--primary) / 0.2);
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary) / 0.9), hsl(var(--secondary) / 0.9));
+    --shadow-glow: 0 4px 20px hsl(var(--primary) / 0.25);
     --shadow-elegant: 0 8px 30px -8px hsl(var(--primary) / 0.3);
+    --shadow-card: 0 2px 12px hsl(var(--foreground) / 0.08);
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     --sidebar-background: 0 0% 98%;
 

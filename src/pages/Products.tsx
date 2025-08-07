@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Filter, Grid, List, ChevronDown } from "lucide-react";
+import { Filter, Grid, List, ChevronDown, Search } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
@@ -32,6 +33,7 @@ interface Product {
   customizable: boolean;
   stock: number;
   review_count: number;
+  created_at?: string;
 }
 
 const Products = () => {
@@ -40,11 +42,23 @@ const Products = () => {
   const [priceRange, setPriceRange] = useState([0, 200]);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
+  const [onlyCustomizable, setOnlyCustomizable] = useState(false);
+  const [onlyNew, setOnlyNew] = useState(false);
+  const [onlyOnSale, setOnlyOnSale] = useState(false);
+  const [searchParams] = useSearchParams();
+  const searchQuery = searchParams.get('search') || '';
 
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    filterAndSortProducts();
+  }, [products, sortBy, priceRange, selectedCategories, selectedMaterials, onlyCustomizable, onlyNew, onlyOnSale, searchQuery]);
 
   const fetchProducts = async () => {
     try {
@@ -59,6 +73,61 @@ const Products = () => {
       console.error('Error fetching products:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const filterAndSortProducts = () => {
+    let filtered = [...products];
+
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(product => 
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.category.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Price range filter
+    filtered = filtered.filter(product => 
+      product.price >= priceRange[0] && product.price <= priceRange[1]
+    );
+
+    // Category filter
+    if (selectedCategories.length > 0) {
+      filtered = filtered.filter(product => 
+        selectedCategories.includes(product.category)
+      );
+    }
+
+    // Customizable filter
+    if (onlyCustomizable) {
+      filtered = filtered.filter(product => product.customizable);
+    }
+
+    // Sort products
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'price-low':
+          return a.price - b.price;
+        case 'price-high':
+          return b.price - a.price;
+        case 'rating':
+          return b.rating - a.rating;
+        case 'newest':
+          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredProducts(filtered);
+  };
+
+  const handleCategoryChange = (category: string, checked: boolean) => {
+    if (checked) {
+      setSelectedCategories([...selectedCategories, category]);
+    } else {
+      setSelectedCategories(selectedCategories.filter(c => c !== category));
     }
   };
 
@@ -90,10 +159,13 @@ const Products = () => {
         {/* Page header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            Todos os Produtos
+            {searchQuery ? `Resultados para "${searchQuery}"` : 'Todos os Produtos'}
           </h1>
           <p className="text-muted-foreground">
-            Descubra nossa coleção completa de produtos personalizados
+            {searchQuery 
+              ? `${filteredProducts.length} produto${filteredProducts.length !== 1 ? 's' : ''} encontrado${filteredProducts.length !== 1 ? 's' : ''}`
+              : 'Descubra nossa coleção completa de produtos personalizados'
+            }
           </p>
         </div>
 
@@ -153,12 +225,16 @@ const Products = () => {
                   <CollapsibleContent className="space-y-2 mt-3">
                     {categories.map((category) => (
                       <div key={category.name} className="flex items-center space-x-2">
-                        <Checkbox id={category.name} />
+                        <Checkbox 
+                          id={category.name}
+                          checked={selectedCategories.includes(category.name)}
+                          onCheckedChange={(checked) => handleCategoryChange(category.name, checked as boolean)}
+                        />
                         <Label htmlFor={category.name} className="flex-1 text-sm">
                           {category.name}
                         </Label>
                         <span className="text-xs text-muted-foreground">
-                          ({category.count})
+                          ({products.filter(p => p.category === category.name).length})
                         </span>
                       </div>
                     ))}
@@ -194,19 +270,31 @@ const Products = () => {
                   </CollapsibleTrigger>
                   <CollapsibleContent className="space-y-2 mt-3">
                     <div className="flex items-center space-x-2">
-                      <Checkbox id="customizable" />
+                      <Checkbox 
+                        id="customizable"
+                        checked={onlyCustomizable}
+                        onCheckedChange={(checked) => setOnlyCustomizable(checked as boolean)}
+                      />
                       <Label htmlFor="customizable" className="text-sm">
                         Personalizável
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox id="new" />
+                      <Checkbox 
+                        id="new"
+                        checked={onlyNew}
+                        onCheckedChange={(checked) => setOnlyNew(checked as boolean)}
+                      />
                       <Label htmlFor="new" className="text-sm">
                         Novidades
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox id="sale" />
+                      <Checkbox 
+                        id="sale"
+                        checked={onlyOnSale}
+                        onCheckedChange={(checked) => setOnlyOnSale(checked as boolean)}
+                      />
                       <Label htmlFor="sale" className="text-sm">
                         Em promoção
                       </Label>
@@ -222,7 +310,8 @@ const Products = () => {
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row items-center justify-between mb-6 space-y-4 sm:space-y-0">
               <div className="text-sm text-muted-foreground">
-                Mostrando 1-24 de 487 produtos
+                Mostrando {filteredProducts.length} produto{filteredProducts.length !== 1 ? 's' : ''}
+                {searchQuery && ` para "${searchQuery}"`}
               </div>
 
               <div className="flex items-center space-x-4">
@@ -273,7 +362,18 @@ const Products = () => {
                   ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" 
                   : "grid-cols-1"
               }`}>
-                {products.map((product) => (
+                {filteredProducts.length === 0 ? (
+                  <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
+                    <Search className="h-16 w-16 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold text-foreground mb-2">
+                      Nenhum produto encontrado
+                    </h3>
+                    <p className="text-muted-foreground">
+                      Tente ajustar os filtros ou usar outros termos de busca
+                    </p>
+                  </div>
+                ) : (
+                  filteredProducts.map((product) => (
                   <ProductCard
                     key={product.id}
                     id={product.id}
@@ -287,7 +387,8 @@ const Products = () => {
                     onAddToCart={() => {}}
                     onToggleWishlist={() => {}}
                   />
-                ))}
+                  ))
+                )}
               </div>
             )}
 
