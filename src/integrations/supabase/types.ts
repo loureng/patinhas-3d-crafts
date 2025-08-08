@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      customization_configs: {
+        Row: {
+          config_key: string
+          config_type: string
+          config_value: Json
+          created_at: string
+          customization_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          config_key: string
+          config_type: string
+          config_value?: Json
+          created_at?: string
+          customization_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          config_key?: string
+          config_type?: string
+          config_value?: Json
+          created_at?: string
+          customization_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customization_configs_customization_id_fkey"
+            columns: ["customization_id"]
+            isOneToOne: false
+            referencedRelation: "customizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customizations: {
         Row: {
           created_at: string
@@ -63,6 +101,59 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      file_uploads: {
+        Row: {
+          created_at: string
+          customization_id: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          file_url: string
+          id: string
+          metadata: Json | null
+          mime_type: string
+          updated_at: string
+          upload_status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customization_id?: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          file_url: string
+          id?: string
+          metadata?: Json | null
+          mime_type: string
+          updated_at?: string
+          upload_status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          customization_id?: string | null
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          file_url?: string
+          id?: string
+          metadata?: Json | null
+          mime_type?: string
+          updated_at?: string
+          upload_status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_uploads_customization_id_fkey"
+            columns: ["customization_id"]
+            isOneToOne: false
+            referencedRelation: "customizations"
             referencedColumns: ["id"]
           },
         ]
@@ -139,6 +230,42 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      pricing_rules: {
+        Row: {
+          base_price: number | null
+          conditions: Json | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          multiplier: number | null
+          rule_name: string
+          rule_type: string
+          updated_at: string
+        }
+        Insert: {
+          base_price?: number | null
+          conditions?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          multiplier?: number | null
+          rule_name: string
+          rule_type: string
+          updated_at?: string
+        }
+        Update: {
+          base_price?: number | null
+          conditions?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          multiplier?: number | null
+          rule_name?: string
+          rule_type?: string
+          updated_at?: string
         }
         Relationships: []
       }
