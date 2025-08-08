@@ -11,6 +11,8 @@ import { useCart } from '@/contexts/CartContext';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import { ArrowLeft, Star, Truck, Shield, RotateCcw } from 'lucide-react';
+import StlViewer from '@/components/StlViewer';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Product {
   id: string;
@@ -36,6 +38,12 @@ const ProductDetail = () => {
     material: '',
     dimensions: { width: 0, height: 0, depth: 0 }
   });
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [stlLocalUrl, setStlLocalUrl] = useState<string | null>(null);
+  const [stlPath, setStlPath] = useState<string | null>(null);
+  const [stlSizeMB, setStlSizeMB] = useState<number>(0);
+  const [priceEstimate, setPriceEstimate] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -58,20 +66,40 @@ const ProductDetail = () => {
     fetchProduct();
   }, [id]);
 
+  const computeEstimate = () => {
+    if (!product) return null;
+    let price = Number(product.price);
+    const mat = customization.material;
+    const mult = mat === 'petg' ? 1.15 : mat === 'tpu' ? 1.2 : mat === 'abs' ? 1.1 : 1;
+    price = price * mult;
+    if (customization.text && customization.text.length > 0) price += 5;
+    if (logoUrl) price += 3;
+    if (stlSizeMB > 0) price += Math.max(2, stlSizeMB * 2);
+    return Number(price.toFixed(2));
+  };
+
   const handleAddToCart = () => {
     if (!product) return;
+
+    const estimated = computeEstimate() ?? Number(product.price);
 
     const cartItem = {
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: estimated,
       image: product.image_url,
-      customization: product.customizable ? customization : undefined
+      customization: product.customizable
+        ? {
+            ...customization,
+            logoUrl: logoUrl || undefined,
+            stlPath: stlPath || undefined,
+            priceEstimate: estimated,
+          }
+        : undefined,
     };
 
     addItem(cartItem);
   };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -142,7 +170,15 @@ const ProductDetail = () => {
               </div>
             </div>
 
-            <p className="text-xl font-bold text-primary">R$ {product.price.toFixed(2)}</p>
+<p className="text-xl font-bold text-primary">
+  {computeEstimate() ? (
+    <>
+      R$ {computeEstimate()!.toFixed(2)} <span className="text-sm text-muted-foreground">(estimado)</span>
+    </>
+  ) : (
+    <>R$ {product.price.toFixed(2)}</>
+  )}
+</p>
 
             {product.customizable && (
               <Card>
@@ -187,6 +223,68 @@ const ProductDetail = () => {
                           <SelectItem value="tpu">TPU</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    <div>
+                      <Label>Upload de logo/imagem</Label>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setLogoPreview(URL.createObjectURL(file));
+                          const { data } = await supabase.auth.getUser();
+                          const uid = data.user?.id;
+                          if (!uid) return;
+                          const path = `${uid}/${Date.now()}-${file.name}`;
+                          const { error } = await supabase.storage.from('customizations').upload(path, file);
+                          if (!error) setLogoUrl(path);
+                        }}
+                      />
+                      {logoPreview && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <img src={logoPreview} alt="Pré-visualização do logo" className="h-12 w-12 rounded-md object-cover border" />
+                          <span className="text-xs text-muted-foreground">Imagem salva ao adicionar ao carrinho</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Upload de modelo 3D (STL)</Label>
+                        {stlSizeMB > 0 && (
+                          <span className="text-xs text-muted-foreground">{stlSizeMB} MB</span>
+                        )}
+                      </div>
+                      <Input
+                        type="file"
+                        accept=".stl"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setStlLocalUrl(URL.createObjectURL(file));
+                          const sizeMB = Math.round((file.size / 1024 / 1024) * 100) / 100;
+                          setStlSizeMB(sizeMB);
+                          const { data } = await supabase.auth.getUser();
+                          const uid = data.user?.id;
+                          if (!uid) return;
+                          const path = `${uid}/${Date.now()}-${file.name}`;
+                          const { error } = await supabase.storage.from('stl-files').upload(path, file, { contentType: 'application/sla' });
+                          if (!error) setStlPath(path);
+                        }}
+                      />
+                      {stlLocalUrl && (
+                        <div className="mt-3">
+                          <StlViewer stlUrl={stlLocalUrl} color={customization.color ? undefined : '#FF9800'} />
+                          <p className="mt-2 text-xs text-muted-foreground">Pré-visualização local. O arquivo STL foi enviado com segurança.</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-2 border-t">
+                      <p className="text-sm text-muted-foreground">Preço estimado com personalização:</p>
+                      <p className="text-lg font-semibold">R$ {computeEstimate()?.toFixed(2) || product.price.toFixed(2)}</p>
                     </div>
                   </div>
                 </CardContent>

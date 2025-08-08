@@ -16,6 +16,9 @@ export interface CartItem {
       height: number;
       depth: number;
     };
+    logoUrl?: string;
+    stlPath?: string;
+    priceEstimate?: number;
   };
 }
 
