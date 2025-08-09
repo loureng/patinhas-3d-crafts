@@ -26,6 +26,21 @@ const Checkout = () => {
     complement: ''
   });
 
+  // Cupom e pagamento
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<any | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [payLoading, setPayLoading] = useState(false);
+
+  // Cálculo de frete e desconto
+  const shippingCost = total >= 200 ? 0 : 20;
+  const discountAmount = appliedCoupon
+    ? (appliedCoupon.discount_type === 'percentage'
+        ? (total * Number(appliedCoupon.value)) / 100
+        : Number(appliedCoupon.value))
+    : 0;
+  const totalWithDiscount = Math.max(0, total - discountAmount + shippingCost);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
@@ -41,9 +56,14 @@ const Checkout = () => {
         .from('orders')
         .insert({
           user_id: user.id,
-          total_amount: total,
+          total_amount: totalWithDiscount,
           status: 'pending',
-          shipping_address: shippingInfo
+          shipping_address: {
+            ...shippingInfo,
+            coupon: appliedCoupon?.code || null,
+            discount: Number(discountAmount.toFixed(2)),
+            shipping_cost: shippingCost,
+          }
         })
         .select()
         .single();
@@ -101,6 +121,108 @@ const Checkout = () => {
       }
     } catch (error) {
       console.error('Error fetching address:', error);
+    }
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode) return;
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    try {
+      setCouponLoading(true);
+      const code = couponCode.trim().toUpperCase();
+      const { data, error } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('code', code)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (!data) {
+        setAppliedCoupon(null);
+        toast({
+          title: 'Cupom inválido',
+          description: 'Verifique o código e tente novamente.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      if (data.usage_limit && data.used_count >= data.usage_limit) {
+        setAppliedCoupon(null);
+        toast({
+          title: 'Cupom expirado',
+          description: 'O limite de uso deste cupom foi atingido.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      setAppliedCoupon(data);
+      toast({
+        title: 'Cupom aplicado',
+        description: `Desconto de ${data.discount_type === 'percentage' ? `${data.value}%` : `R$ ${Number(data.value).toFixed(2)}`} aplicado.`,
+      });
+    } catch (err) {
+      console.error('Apply coupon error:', err);
+      toast({
+        title: 'Erro ao aplicar cupom',
+        description: 'Tente novamente mais tarde.',
+        variant: 'destructive'
+      });
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleMercadoPago = async () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    try {
+      setPayLoading(true);
+      const mpItems = items.map((item) => ({
+        title: item.name,
+        quantity: item.quantity,
+        unit_price: Number(item.price),
+        currency_id: 'BRL',
+      }));
+
+      const backUrl = `${window.location.origin}/account/orders`;
+      const { data, error } = await supabase.functions.invoke('create-payment-preference', {
+        body: {
+          items: mpItems,
+          back_urls: {
+            success: backUrl,
+            failure: backUrl,
+            pending: backUrl,
+          },
+          auto_return: 'approved',
+          external_reference: user.id,
+        },
+      });
+
+      if (error) {
+        console.error('MP error:', error);
+        toast({ title: 'Erro ao iniciar pagamento', description: 'Tente novamente.', variant: 'destructive' });
+        return;
+      }
+
+      const redirectUrl = (data as any)?.init_point || (data as any)?.sandbox_init_point;
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+      } else {
+        toast({ title: 'Erro ao iniciar pagamento', description: 'URL de pagamento não retornada.', variant: 'destructive' });
+      }
+    } catch (err) {
+      console.error('Mercado Pago error:', err);
+      toast({ title: 'Erro ao iniciar pagamento', description: 'Tente novamente mais tarde.', variant: 'destructive' });
+    } finally {
+      setPayLoading(false);
     }
   };
 
@@ -229,19 +351,55 @@ const Checkout = () => {
                   </div>
                 ))}
                 
-                <div className="border-t pt-4">
+                <div className="border-t pt-4 space-y-4">
+                  <div>
+                    <Label htmlFor="coupon">Cupom de desconto</Label>
+                    <div className="flex gap-2 mt-2">
+                      <Input
+                        id="coupon"
+                        placeholder="INSIRA O CUPOM"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value)}
+                      />
+                      <Button type="button" onClick={handleApplyCoupon} disabled={couponLoading || !couponCode}>
+                        {couponLoading ? 'Aplicando...' : 'Aplicar'}
+                      </Button>
+                    </div>
+                    {appliedCoupon && (
+                      <p className="text-sm text-green-600 mt-1">
+                        Cupom aplicado: {appliedCoupon.code} (
+                        {appliedCoupon.discount_type === 'percentage'
+                          ? `${appliedCoupon.value}%`
+                          : `R$ ${Number(appliedCoupon.value).toFixed(2)}`}
+                        )
+                      </p>
+                    )}
+                  </div>
+
                   <div className="flex justify-between">
                     <span>Subtotal</span>
                     <span>R$ {total.toFixed(2)}</span>
                   </div>
+
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Desconto</span>
+                      <span>- R$ {discountAmount.toFixed(2)}</span>
+                    </div>
+                  )}
+
                   <div className="flex justify-between">
                     <span>Frete</span>
-                    <span>Grátis</span>
+                    <span>{shippingCost === 0 ? 'Grátis' : `R$ ${shippingCost.toFixed(2)}`}</span>
                   </div>
                   <div className="flex justify-between font-bold text-lg">
                     <span>Total</span>
-                    <span>R$ {total.toFixed(2)}</span>
+                    <span>R$ {totalWithDiscount.toFixed(2)}</span>
                   </div>
+
+                  <Button type="button" variant="secondary" className="w-full" onClick={handleMercadoPago} disabled={payLoading || loading}>
+                    {payLoading ? 'Redirecionando...' : 'Pagar com Mercado Pago'}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
