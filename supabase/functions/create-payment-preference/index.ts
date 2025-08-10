@@ -1,3 +1,5 @@
+// @ts-nocheck
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 const corsHeaders = {
@@ -48,7 +50,12 @@ serve(async (req: Request): Promise<Response> => {
       currency_id: i.currency_id || "BRL",
     }));
 
-    const mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
+  // Compute notification URL for webhook
+  const supaUrl = Deno.env.get("SUPABASE_URL") ?? "https://znvctabjuloliuzxzwya.supabase.co";
+  const functionsBase = supaUrl.replace(".supabase.co", ".functions.supabase.co");
+  const notification_url = `${functionsBase}/mp-webhook`;
+
+  const mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -58,7 +65,8 @@ serve(async (req: Request): Promise<Response> => {
         items,
         back_urls: body.back_urls,
         auto_return: body.auto_return ?? "approved",
-        external_reference: body.external_reference,
+    external_reference: body.external_reference,
+    notification_url,
       }),
     });
 

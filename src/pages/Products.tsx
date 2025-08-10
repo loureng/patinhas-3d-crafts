@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Filter, Grid, List, ChevronDown, Search } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import Header from "@/components/Header";
@@ -34,6 +34,7 @@ interface Product {
   stock: number;
   review_count: number;
   created_at?: string;
+  sale_price?: number; // opcional: se existir, usar como preço efetivo
 }
 
 const Products = () => {
@@ -56,9 +57,91 @@ const Products = () => {
     fetchProducts();
   }, []);
 
+  const filterAndSortProducts = useCallback(() => {
+    let filtered = [...products];
+    // Preço efetivo (considera sale_price quando disponível)
+    const getEffectivePrice = (p: Product) => (typeof p.sale_price === 'number' ? p.sale_price : p.price);
+
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(product => 
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.category.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Price range filter
+    filtered = filtered.filter(product => {
+      const price = getEffectivePrice(product);
+      return price >= priceRange[0] && price <= priceRange[1];
+    });
+
+    // Category filter
+    if (selectedCategories.length > 0) {
+      filtered = filtered.filter(product => 
+        selectedCategories.includes(product.category)
+      );
+    }
+
+    // Materials filter (fallback por texto: name/description inclui material)
+    if (selectedMaterials.length > 0) {
+      filtered = filtered.filter((product) => {
+        const anyProduct = product as unknown as { name?: string; description?: string };
+        const hay = `${anyProduct.name || ''} ${(anyProduct.description || '')}`.toLowerCase();
+        return selectedMaterials.some(m => hay.includes(m.toLowerCase()));
+      });
+    }
+
+    // Customizable filter
+    if (onlyCustomizable) {
+      filtered = filtered.filter(product => product.customizable);
+    }
+
+    // New (últimos 30 dias)
+    if (onlyNew) {
+      const now = Date.now();
+      const THIRTY_D = 30 * 24 * 60 * 60 * 1000;
+      filtered = filtered.filter(p => {
+        const created = p.created_at ? new Date(p.created_at).getTime() : 0;
+        return created && now - created <= THIRTY_D;
+      });
+    }
+
+    // On Sale (tem sale_price < price)
+    if (onlyOnSale) {
+      filtered = filtered.filter(p => typeof p.sale_price === 'number' && p.sale_price < p.price);
+    }
+
+    // Sort products
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'price-low': {
+          return getEffectivePrice(a) - getEffectivePrice(b);
+        }
+        case 'price-high': {
+          return getEffectivePrice(b) - getEffectivePrice(a);
+        }
+        case 'rating': {
+          return b.rating - a.rating;
+        }
+        case 'newest': {
+          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+        }
+        default: {
+          // relevância: melhor avaliados mais recentes primeiro
+          const byRating = b.rating - a.rating;
+          if (byRating !== 0) return byRating;
+          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+        }
+      }
+    });
+
+    setFilteredProducts(filtered);
+  }, [products, searchQuery, priceRange, selectedCategories, selectedMaterials, onlyCustomizable, onlyNew, onlyOnSale, sortBy]);
+
   useEffect(() => {
     filterAndSortProducts();
-  }, [products, sortBy, priceRange, selectedCategories, selectedMaterials, onlyCustomizable, onlyNew, onlyOnSale, searchQuery]);
+  }, [filterAndSortProducts]);
 
   const fetchProducts = async () => {
     try {
@@ -76,52 +159,17 @@ const Products = () => {
     }
   };
 
-  const filterAndSortProducts = () => {
-    let filtered = [...products];
-
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter(product => 
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+  const handleMaterialChange = (material: string, checked: boolean) => {
+    if (checked) {
+      setSelectedMaterials([...selectedMaterials, material]);
+    } else {
+      setSelectedMaterials(selectedMaterials.filter(m => m !== material));
     }
-
-    // Price range filter
-    filtered = filtered.filter(product => 
-      product.price >= priceRange[0] && product.price <= priceRange[1]
-    );
-
-    // Category filter
-    if (selectedCategories.length > 0) {
-      filtered = filtered.filter(product => 
-        selectedCategories.includes(product.category)
-      );
-    }
-
-    // Customizable filter
-    if (onlyCustomizable) {
-      filtered = filtered.filter(product => product.customizable);
-    }
-
-    // Sort products
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'price-low':
-          return a.price - b.price;
-        case 'price-high':
-          return b.price - a.price;
-        case 'rating':
-          return b.rating - a.rating;
-        case 'newest':
-          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-        default:
-          return 0;
-      }
-    });
-
-    setFilteredProducts(filtered);
   };
+
+  // max do slider baseado nos produtos
+  const effectivePrices = products.map(p => (typeof p.sale_price === 'number' ? p.sale_price : p.price));
+  const dynamicMax = Math.max(200, Math.ceil((Math.max(0, ...effectivePrices) || 200) / 50) * 50);
 
   const handleCategoryChange = (category: string, checked: boolean) => {
     if (checked) {
@@ -194,7 +242,7 @@ const Products = () => {
                     <Slider
                       value={priceRange}
                       onValueChange={setPriceRange}
-                      max={200}
+                      max={dynamicMax}
                       step={5}
                       className="w-full"
                     />
@@ -250,7 +298,11 @@ const Products = () => {
                   <CollapsibleContent className="space-y-2 mt-3">
                     {materials.map((material) => (
                       <div key={material.name} className="flex items-center space-x-2">
-                        <Checkbox id={material.name} />
+                        <Checkbox
+                          id={material.name}
+                          checked={selectedMaterials.includes(material.name)}
+                          onCheckedChange={(checked) => handleMaterialChange(material.name, checked as boolean)}
+                        />
                         <Label htmlFor={material.name} className="flex-1 text-sm">
                           {material.name}
                         </Label>

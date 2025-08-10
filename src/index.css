@@ -30,13 +30,13 @@ All colors MUST be HSL.
     --muted-foreground: 0 0% 45%;
 
     --accent: 27 100% 50%; /* Orange accent */
-    --accent-foreground: 0 0% 100%;
+    --primary: 36 100% 50%; /* Orange #FF9800 */
 
-    --destructive: 0 84% 60%;
+    --primary-glow: 36 100% 65%; /* Lighter orange for hover */
     --destructive-foreground: 0 0% 98%;
-
+    --secondary: 122 39% 49%; /* Green #4CAF50 */
     --border: 0 0% 90%;
-    --input: 0 0% 95%;
+    --secondary-glow: 122 39% 59%;
     --ring: 27 100% 50%;
 
     --radius: 0.75rem;
@@ -48,7 +48,7 @@ All colors MUST be HSL.
     --shadow-glow: 0 4px 20px hsl(var(--primary) / 0.25);
     --shadow-elegant: 0 8px 30px -8px hsl(var(--primary) / 0.3);
     --shadow-card: 0 2px 12px hsl(var(--foreground) / 0.08);
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --ring: 36 100% 50%;
     --transition-bounce: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     --sidebar-background: 0 0% 98%;
@@ -89,10 +89,10 @@ All colors MUST be HSL.
 
     --accent: 27 100% 50%;
     --accent-foreground: 0 0% 10%;
-
+    --primary: 36 100% 50%; /* Keep orange primary */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-
+    --secondary: 122 39% 49%; /* Keep green secondary */
     --border: 0 0% 25%;
     --input: 0 0% 25%;
     --ring: 27 100% 50%;
@@ -106,7 +106,7 @@ All colors MUST be HSL.
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
-
+    --ring: 36 100% 50%;
 @layer base {
   * {
     @apply border-border;

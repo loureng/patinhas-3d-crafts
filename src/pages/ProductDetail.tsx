@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useCart } from '@/contexts/CartContext';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
@@ -44,6 +46,8 @@ const ProductDetail = () => {
   const [stlPath, setStlPath] = useState<string | null>(null);
   const [stlSizeMB, setStlSizeMB] = useState<number>(0);
   const [priceEstimate, setPriceEstimate] = useState<number | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -59,6 +63,7 @@ const ProductDetail = () => {
         console.error('Error fetching product:', error);
       } else {
         setProduct(data);
+        if (data?.image_url) setSelectedImage(data.image_url);
       }
       setLoading(false);
     };
@@ -146,11 +151,43 @@ const ProductDetail = () => {
 
         <div className="grid md:grid-cols-2 gap-8 mb-12">
           <div>
-            <img 
-              src={product.image_url} 
-              alt={product.name}
-              className="w-full h-96 object-cover rounded-lg"
-            />
+            <div className="space-y-3">
+              <div
+                className="group rounded-lg overflow-hidden border bg-muted/10 cursor-zoom-in"
+                onClick={() => setIsZoomOpen(true)}
+              >
+                <AspectRatio ratio={1}>
+                  <img
+                    src={selectedImage || '/placeholder.svg'}
+                    alt={product.name}
+                    className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-110"
+                  />
+                </AspectRatio>
+              </div>
+              <div className="flex gap-2">
+                {[product.image_url].filter(Boolean).map((src, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    className={`h-16 w-16 rounded overflow-hidden border ${selectedImage === src ? 'ring-2 ring-primary' : ''}`}
+                    onClick={() => setSelectedImage(src!)}
+                    aria-label={`Selecionar imagem ${idx + 1}`}
+                  >
+                    <img src={src!} alt="Miniatura" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
+              <DialogContent className="p-0 sm:max-w-3xl">
+                <img
+                  src={selectedImage || '/placeholder.svg'}
+                  alt={product.name}
+                  className="w-full h-full object-contain"
+                />
+              </DialogContent>
+            </Dialog>
           </div>
 
           <div className="space-y-6">
@@ -276,7 +313,19 @@ const ProductDetail = () => {
                       />
                       {stlLocalUrl && (
                         <div className="mt-3">
-                          <StlViewer stlUrl={stlLocalUrl} color={customization.color ? undefined : '#FF9800'} />
+                          {(() => {
+                            const colorMap: Record<string, string> = {
+                              vermelho: '#ff4d4f',
+                              azul: '#3b82f6',
+                              verde: '#22c55e',
+                              amarelo: '#f59e0b',
+                              preto: '#111827',
+                              branco: '#f9fafb',
+                            };
+                            const chosen = customization.color?.toLowerCase?.();
+                            const hex = chosen && colorMap[chosen] ? colorMap[chosen] : '#FF9800';
+                            return <StlViewer stlUrl={stlLocalUrl} color={hex} />;
+                          })()}
                           <p className="mt-2 text-xs text-muted-foreground">Pré-visualização local. O arquivo STL foi enviado com segurança.</p>
                         </div>
                       )}

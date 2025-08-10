@@ -10,6 +10,19 @@ import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import { toast } from '@/hooks/use-toast';
 
+type Coupon = {
+  code: string;
+  discount_type: 'percentage' | 'fixed';
+  value: number | string; // supabase numeric pode chegar como string
+  usage_limit?: number | null;
+  used_count?: number | null;
+};
+
+type MpPreferenceResponse = {
+  init_point?: string;
+  sandbox_init_point?: string;
+};
+
 const Checkout = () => {
   const { items, total, clearCart } = useCart();
   const { user } = useAuth();
@@ -28,7 +41,7 @@ const Checkout = () => {
 
   // Cupom e pagamento
   const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<any | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [payLoading, setPayLoading] = useState(false);
 
@@ -161,7 +174,14 @@ const Checkout = () => {
         return;
       }
 
-      setAppliedCoupon(data);
+      const normalized: Coupon = {
+        code: data.code,
+        discount_type: data.discount_type === 'percentage' ? 'percentage' : 'fixed',
+        value: data.value,
+        usage_limit: data.usage_limit ?? null,
+        used_count: data.used_count ?? null,
+      };
+      setAppliedCoupon(normalized);
       toast({
         title: 'Cupom aplicado',
         description: `Desconto de ${data.discount_type === 'percentage' ? `${data.value}%` : `R$ ${Number(data.value).toFixed(2)}`} aplicado.`,
@@ -185,6 +205,51 @@ const Checkout = () => {
     }
     try {
       setPayLoading(true);
+
+      // 1) Criar o pedido antes do pagamento
+      const shippingCost = total >= 200 ? 0 : 20;
+      const discountAmount = appliedCoupon
+        ? (appliedCoupon.discount_type === 'percentage'
+            ? (total * Number(appliedCoupon.value)) / 100
+            : Number(appliedCoupon.value))
+        : 0;
+      const totalWithDiscount = Math.max(0, total - discountAmount + shippingCost);
+
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          user_id: user.id,
+          total_amount: totalWithDiscount,
+          status: 'pending',
+          shipping_address: {
+            ...shippingInfo,
+            coupon: appliedCoupon?.code || null,
+            discount: Number(discountAmount.toFixed(2)),
+            shipping_cost: shippingCost,
+          }
+        })
+        .select()
+        .single();
+
+      if (orderError || !order) {
+        throw orderError || new Error('Failed to create order');
+      }
+
+      const orderItems = items.map(item => ({
+        order_id: order.id,
+        product_id: item.id,
+        quantity: item.quantity,
+        price: item.price,
+        customization: item.customization
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+
+      if (itemsError) throw itemsError;
+
+      // 2) Criar preferência no MP vinculando ao pedido
       const mpItems = items.map((item) => ({
         title: item.name,
         quantity: item.quantity,
@@ -193,7 +258,7 @@ const Checkout = () => {
       }));
 
       const backUrl = `${window.location.origin}/account/orders`;
-      const { data, error } = await supabase.functions.invoke('create-payment-preference', {
+  const { data, error } = await supabase.functions.invoke('create-payment-preference', {
         body: {
           items: mpItems,
           back_urls: {
@@ -202,7 +267,7 @@ const Checkout = () => {
             pending: backUrl,
           },
           auto_return: 'approved',
-          external_reference: user.id,
+          external_reference: order.id,
         },
       });
 
@@ -212,7 +277,8 @@ const Checkout = () => {
         return;
       }
 
-      const redirectUrl = (data as any)?.init_point || (data as any)?.sandbox_init_point;
+  const pref = (data as MpPreferenceResponse) || {};
+  const redirectUrl = pref.init_point || pref.sandbox_init_point;
       if (redirectUrl) {
         window.location.href = redirectUrl;
       } else {
@@ -397,9 +463,14 @@ const Checkout = () => {
                     <span>R$ {totalWithDiscount.toFixed(2)}</span>
                   </div>
 
-                  <Button type="button" variant="secondary" className="w-full" onClick={handleMercadoPago} disabled={payLoading || loading}>
-                    {payLoading ? 'Redirecionando...' : 'Pagar com Mercado Pago'}
-                  </Button>
+                  <div className="space-y-2">
+                    <Button type="button" variant="secondary" className="w-full" disabled>
+                      Pagamento em manutenção
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Temporariamente indisponível. Tente novamente mais tarde.
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
