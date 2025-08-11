@@ -208,9 +208,13 @@ const ProductionQueueCliente = () => {
                       <div className="flex-1">
                         <p className="text-sm font-medium mb-2">Detalhes da Personalização</p>
                         <div className="bg-muted rounded-md p-3">
-                          <pre className="text-xs whitespace-pre-wrap font-mono">
-                            {JSON.stringify(item.customization_details, null, 2)}
-                          </pre>
+                          <div className="text-xs whitespace-pre-wrap font-mono">
+                            {Object.entries(item.customization_details).map(([key, value]) => (
+                              <div key={key}>
+                                <span className="font-semibold">{key}:</span> {String(value)}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
