@@ -75,7 +75,17 @@ CREATE POLICY "Users can view their own production queue items" ON public.produc
     )
   );
 
--- Admins can view all production queue items (for now, authenticated users who are assigned)
+-- Admins can view all production queue items
+CREATE POLICY "Admins can view all production queue items" ON public.production_queue
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM auth.users
+      WHERE id = auth.uid()
+      AND user_role = 'admin'
+    )
+  );
+
+-- Assigned users can view production queue
 CREATE POLICY "Assigned users can view production queue" ON public.production_queue
   FOR SELECT USING (assigned_to = auth.uid());
 
