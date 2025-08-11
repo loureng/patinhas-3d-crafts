@@ -34,6 +34,7 @@ const Header = () => {
     { name: "Casa", href: "/casa" },
     { name: "Jardim", href: "/jardim" },
     { name: "Personalização 3D", href: "/personalizacao" },
+    { name: "Blog", href: "/blog" },
   ];
 
   return (

@@ -23,6 +23,9 @@ import AdminCustomers from "./pages/admin/Customers";
 import AdminCoupons from "./pages/admin/Coupons";
 import AdminInventory from "./pages/admin/Inventory";
 import AdminDemo from "./pages/AdminDemo";
+import BlogList from "./pages/blog/BlogList";
+import BlogPost from "./pages/blog/BlogPost";
+import WhatsAppSupport from "./components/blog/WhatsAppSupport";
 
 const queryClient = new QueryClient();
 
@@ -74,6 +77,9 @@ const App = () => (
               <Route path="/casa" element={<Products />} />
               <Route path="/jardim" element={<Products />} />
               <Route path="/personalizacao" element={<Products />} />
+              {/* Blog Routes */}
+              <Route path="/blog" element={<BlogList />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
               {/* Admin Routes */}
               <Route path="/admin" element={
                 <ProtectedRoute>
@@ -92,6 +98,12 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
+          
+          {/* Global WhatsApp Support */}
+          <WhatsAppSupport 
+            phoneNumber="5511999999999" 
+            businessName="Jardim das Patinhas"
+          />
         </CartProvider>
       </AuthProvider>
     </TooltipProvider>
