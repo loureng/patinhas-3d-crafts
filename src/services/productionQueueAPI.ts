@@ -221,7 +221,7 @@ export class ProductionQueueService {
         product:products!inner(id, name, category, image_url),
         status_history:production_status_history(*)
       `)
-      .eq('order.user_id', userId)
+      .in('order_id', orderIds)
       .order('created_at', { ascending: false });
 
     if (error) {
