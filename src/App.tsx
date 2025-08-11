@@ -27,7 +27,12 @@ const AdminCoupons = lazy(() => import("./pages/admin/Coupons"));
 const AdminInventory = lazy(() => import("./pages/admin/Inventory"));
 const AdminReports = lazy(() => import("./pages/admin/Reports"));
 const AdminDemo = lazy(() => import("./pages/AdminDemo"));
+
+const AdminCategories = lazy(() => import("./pages/admin/Categories"));
+const AdminSettings = lazy(() => import("./pages/admin/Settings"));
+
 const NotificationDemo = lazy(() => import("./pages/NotificationDemo"));
+
 const BlogList = lazy(() => import("./pages/blog/BlogList"));
 const BlogPost = lazy(() => import("./pages/blog/BlogPost"));
 
@@ -114,10 +119,12 @@ const App = () => (
                   <Route index element={<AdminDashboard />} />
                   <Route path="reports" element={<AdminReports />} />
                   <Route path="products" element={<AdminProducts />} />
+                  <Route path="categories" element={<AdminCategories />} />
                   <Route path="orders" element={<AdminOrders />} />
                   <Route path="customers" element={<AdminCustomers />} />
                   <Route path="coupons" element={<AdminCoupons />} />
                   <Route path="inventory" element={<AdminInventory />} />
+                  <Route path="settings" element={<AdminSettings />} />
                 </Route>
                 <Route path="/admin-demo" element={<AdminDemo />} />
                 <Route path="/notification-demo" element={<NotificationDemo />} />
