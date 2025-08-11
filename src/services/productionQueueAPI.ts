@@ -22,10 +22,12 @@ export class ProductionQueueService {
       .from('production_queue')
       .select(`
         *,
-        order:orders!inner(id, user_id, total_amount, status, created_at),
+        order:orders!inner(
+          id, user_id, total_amount, status, created_at,
+          customer:profiles!inner(display_name, email)
+        ),
         order_item:order_items!inner(id, product_id, quantity, price, customization),
         product:products!inner(id, name, category, image_url),
-        customer:profiles!inner(display_name, email),
         status_history:production_status_history(*)
       `)
       .order('created_at', { ascending: false });
