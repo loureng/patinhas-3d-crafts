@@ -4,7 +4,7 @@ import { SalesData, ProductSalesData, PeriodSalesData, formatCurrency, formatDat
 /**
  * Exporta dados para CSV
  */
-export function exportToCSV(data: any[], filename: string): void {
+export function exportToCSV(data: Record<string, unknown>[], filename: string): void {
   if (!data.length) return;
 
   const headers = Object.keys(data[0]);
@@ -27,7 +27,7 @@ export function exportToCSV(data: any[], filename: string): void {
 /**
  * Exporta dados para Excel
  */
-export function exportToExcel(data: any[], filename: string, sheetName: string = 'Dados'): void {
+export function exportToExcel(data: Record<string, unknown>[], filename: string, sheetName: string = 'Dados'): void {
   if (!data.length) return;
 
   const worksheet = XLSX.utils.json_to_sheet(data);
