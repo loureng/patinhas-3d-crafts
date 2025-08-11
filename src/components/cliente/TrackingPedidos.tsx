@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import { usePedidos } from '@/hooks/usePedidos';
 import { 
   Package,
@@ -11,11 +14,58 @@ import {
   Truck,
   ShoppingBag,
   AlertCircle,
-  Calendar
+  Calendar,
+  X,
+  RotateCcw,
+  Edit,
+  MoreVertical
 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import EditarEnderecoPedido from './EditarEnderecoPedido';
 
 const TrackingPedidos = () => {
-  const { pedidos, loading, error, statusLabels, getStatusProgress } = usePedidos();
+  const { pedidos, loading, error, statusLabels, getStatusProgress, cancelarPedido, reordenarPedido } = usePedidos();
+  const [cancelarDialogOpen, setCancelarDialogOpen] = useState(false);
+  const [editarEnderecoOpen, setEditarEnderecoOpen] = useState(false);
+  const [pedidoSelecionado, setPedidoSelecionado] = useState<string | null>(null);
+  const [enderecoAtual, setEnderecoAtual] = useState<any>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const handleCancelarPedido = async () => {
+    if (!pedidoSelecionado) return;
+    
+    try {
+      setActionLoading(true);
+      await cancelarPedido(pedidoSelecionado);
+      toast.success('Pedido cancelado com sucesso');
+      setCancelarDialogOpen(false);
+      setPedidoSelecionado(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao cancelar pedido');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReordenarPedido = async (pedidoId: string) => {
+    try {
+      setActionLoading(true);
+      const result = await reordenarPedido(pedidoId);
+      toast.success('Novo pedido criado com sucesso!');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao reordenar pedido');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const canCancelOrder = (status: string) => {
+    return ['pending', 'processing'].includes(status);
+  };
+
+  const canEditOrder = (status: string) => {
+    return ['pending', 'processing'].includes(status);
+  };
 
   if (loading) {
     return (
@@ -123,9 +173,55 @@ const TrackingPedidos = () => {
                       <span>R$ {pedido.total_amount.toFixed(2)}</span>
                     </div>
                   </div>
-                  <Badge variant={getStatusColor(pedido.status)} className="w-fit">
-                    {statusLabels[pedido.status as keyof typeof statusLabels] || pedido.status}
-                  </Badge>
+                  <div className="flex items-center space-x-2">
+                    <Badge variant={getStatusColor(pedido.status)} className="w-fit">
+                      {statusLabels[pedido.status as keyof typeof statusLabels] || pedido.status}
+                    </Badge>
+                    
+                    {/* Menu de ações */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => handleReordenarPedido(pedido.id)}
+                          disabled={actionLoading}
+                        >
+                          <RotateCcw className="mr-2 h-4 w-4" />
+                          Reordenar
+                        </DropdownMenuItem>
+                        
+                        {canEditOrder(pedido.status) && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setPedidoSelecionado(pedido.id);
+                              setEnderecoAtual(pedido.shipping_address);
+                              setEditarEnderecoOpen(true);
+                            }}
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar Endereço
+                          </DropdownMenuItem>
+                        )}
+                        
+                        {canCancelOrder(pedido.status) && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setPedidoSelecionado(pedido.id);
+                              setCancelarDialogOpen(true);
+                            }}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <X className="mr-2 h-4 w-4" />
+                            Cancelar Pedido
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -253,6 +349,46 @@ const TrackingPedidos = () => {
           ))}
         </div>
       )}
+
+      {/* Dialog de confirmação para cancelar pedido */}
+      <Dialog open={cancelarDialogOpen} onOpenChange={setCancelarDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancelar Pedido</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja cancelar este pedido? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setCancelarDialogOpen(false)}
+              disabled={actionLoading}
+            >
+              Manter Pedido
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleCancelarPedido}
+              disabled={actionLoading}
+            >
+              {actionLoading ? 'Cancelando...' : 'Confirmar Cancelamento'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para editar endereço */}
+      <EditarEnderecoPedido
+        pedidoId={pedidoSelecionado}
+        enderecoAtual={enderecoAtual}
+        open={editarEnderecoOpen}
+        onClose={() => {
+          setEditarEnderecoOpen(false);
+          setPedidoSelecionado(null);
+          setEnderecoAtual(null);
+        }}
+      />
     </div>
   );
 };
