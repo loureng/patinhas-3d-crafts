@@ -3,14 +3,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCliente } from '@/hooks/useCliente';
+import ProductionQueueCliente from './ProductionQueueCliente';
 import { 
   ShoppingBag, 
   DollarSign, 
   Clock, 
   TrendingUp,
   Eye,
-  Calendar
+  Calendar,
+  Package,
+  Settings
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -74,8 +78,21 @@ const DashboardCliente = () => {
         </p>
       </div>
 
-      {/* Métricas Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Visão Geral
+          </TabsTrigger>
+          <TabsTrigger value="production" className="flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            Produção
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          {/* Métricas Cards */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -224,6 +241,12 @@ const DashboardCliente = () => {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="production">
+          <ProductionQueueCliente />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

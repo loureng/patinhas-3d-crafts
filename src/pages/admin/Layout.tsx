@@ -10,7 +10,8 @@ import {
   Settings,
   LogOut,
   Menu,
-  Home
+  Home,
+  Factory
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -24,6 +25,11 @@ const sidebarItems = [
     title: "Dashboard",
     href: "/admin",
     icon: LayoutDashboard,
+  },
+  {
+    title: "Fila de Produção",
+    href: "/admin/production-queue",
+    icon: Factory,
   },
   {
     title: "Produtos",
