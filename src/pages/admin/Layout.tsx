@@ -83,7 +83,13 @@ export default function AdminLayout() {
 
   const checkAdminAccess = useCallback(async () => {
     try {
-
+      // TEMPORÁRIO: Removendo completamente a verificação de autenticação
+      // Sempre permitir acesso ao painel admin para desenvolvimento
+      setIsAdmin(true);
+      setLoading(false);
+      
+      // Código original comentado para possível reativação futura:
+      /*
       if (!user) {
         setIsAdmin(false);
         setLoading(false);
@@ -106,19 +112,17 @@ export default function AdminLayout() {
 
       // Por enquanto, qualquer usuário logado pode ser admin
       // TODO: Implementar verificação real de permissões admin
-
-      // TEMPORÁRIO: Removendo autenticação para acessar admin
-      // Sempre permitir acesso ao painel admin
       
       setIsAdmin(true);
+      */
       
     } catch (error) {
       console.error('Erro ao verificar acesso admin:', error);
-      setIsAdmin(false);
-    } finally {
+      // Mesmo em caso de erro, permitir acesso durante desenvolvimento
+      setIsAdmin(true);
       setLoading(false);
     }
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     checkAdminAccess();

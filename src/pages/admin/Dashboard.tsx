@@ -33,6 +33,23 @@ interface OrderStatusData {
   color: string;
 }
 
+interface Product {
+  id: string;
+  name: string;
+  stock: number;
+  price: number;
+  image_url?: string;
+  category?: string;
+}
+
+interface Order {
+  id: string;
+  created_at: string;
+  status: string;
+  total_amount: number;
+  user_id: string;
+}
+
 export default function AdminDashboard() {
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     totalRevenue: 0,
@@ -48,10 +65,6 @@ export default function AdminDashboard() {
   const [orderStatus, setOrderStatus] = useState<OrderStatusData[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadDashboardData();
-  }, [loadDashboardData]);
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -133,7 +146,11 @@ export default function AdminDashboard() {
     }
   }, []);
 
-  const calculateSalesByMonth = (orders: Product[]) => {
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
+
+  const calculateSalesByMonth = (orders: Order[]) => {
     const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'];
     return months.map(month => ({
       month,
