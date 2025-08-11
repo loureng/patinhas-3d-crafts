@@ -187,7 +187,7 @@ export function isDeliveryAvailable(cep: string): boolean {
   return cepNumber >= 1000000 && cepNumber <= 99999999;
 }
 
-// Função utilitária para obter peso de um produto (com fallback)
-export function getProductWeight(weight?: number): number {
+// Função utilitária para normalizar peso (com fallback)
+export function getWeightWithFallback(weight?: number): number {
   return weight && weight > 0 ? weight : 200; // 200g default
 }
