@@ -207,7 +207,7 @@ const Checkout = () => {
       }));
 
       const shippingRequest = {
-        origin: '01310-100', // Company CEP
+        origin: ORIGIN_CEP, // Company CEP
         destination: {
           cep: shippingInfo.zipCode,
           address: shippingInfo.address,
