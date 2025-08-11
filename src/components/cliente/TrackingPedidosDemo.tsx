@@ -159,7 +159,7 @@ const TrackingPedidosDemo = () => {
       setActionLoading(true);
       
       // Simular delay da API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, DEMO_API_DELAY));
       
       // Atualizar status para cancelado
       setPedidos(prev => prev.map(pedido => 
