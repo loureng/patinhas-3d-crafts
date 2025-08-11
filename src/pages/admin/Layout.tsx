@@ -12,9 +12,13 @@ import {
   Menu,
   Home,
 
+  Factory
+
+
   Tag
 
   BarChart3
+
 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,9 +35,15 @@ const sidebarItems = [
     icon: LayoutDashboard,
   },
   {
+
+    title: "Fila de Produção",
+    href: "/admin/production-queue",
+    icon: Factory,
+
     title: "Relatórios",
     href: "/admin/reports",
     icon: BarChart3,
+
   },
   {
     title: "Produtos",
