@@ -11,15 +11,9 @@ import {
   LogOut,
   Menu,
   Home,
-
-  Factory
-
-
-  Tag
-
+  Factory,
+  Tag,
   BarChart3
-
-
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -35,15 +29,14 @@ const sidebarItems = [
     icon: LayoutDashboard,
   },
   {
-
     title: "Fila de Produção",
     href: "/admin/production-queue",
     icon: Factory,
-
+  },
+  {
     title: "Relatórios",
     href: "/admin/reports",
     icon: BarChart3,
-
   },
   {
     title: "Produtos",
@@ -84,13 +77,9 @@ const sidebarItems = [
 
 export default function AdminLayout() {
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    checkAdminAccess();
-  }, [checkAdminAccess]);
 
   const checkAdminAccess = useCallback(async () => {
     try {
@@ -129,12 +118,16 @@ export default function AdminLayout() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
+
+  useEffect(() => {
+    checkAdminAccess();
+  }, [checkAdminAccess]);
 
   const handleLogout = async () => {
     try {
       // TEMPORÁRIO: Comentando logout já que removemos autenticação
-      // await logout();
+      // await signOut();
       toast.success('Logout desabilitado temporariamente');
     } catch (error) {
       toast.error('Erro ao fazer logout');
