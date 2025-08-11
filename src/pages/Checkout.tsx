@@ -221,19 +221,19 @@ const Checkout = () => {
 
       const result = await calculateShipping(shippingRequest);
       
+      if (!result.success) {
+        toast({
+          title: "Aviso",
+          description: result.error || "Usando valores estimados de frete",
+          variant: "default"
+        });
+      }
+
       if (result.success && result.options.length > 0) {
         setShippingOptions(result.options);
         // Auto-select the cheapest option
         setSelectedShipping(result.options[0].id);
         setShippingCalculated(true);
-        
-        if (!result.success) {
-          toast({
-            title: "Aviso",
-            description: result.error || "Usando valores estimados de frete",
-            variant: "default"
-          });
-        }
       } else {
         throw new Error(result.error || 'Não foi possível calcular o frete');
       }
