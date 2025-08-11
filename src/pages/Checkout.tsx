@@ -1,14 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import { toast } from '@/hooks/use-toast';
+import { fetchCepData, validateAddress } from '@/services/cepAPI';
+import { calculateShipping, getWeightWithFallback } from '@/services/shippingAPI';
+import { ShippingOption, ORIGIN_CEP } from '@/types/shipping';
+import { Loader2 } from 'lucide-react';
 
 type Coupon = {
   code: string;
@@ -33,11 +38,18 @@ const Checkout = () => {
     email: user?.email || '',
     phone: '',
     address: '',
+    number: '',
     city: '',
     state: '',
     zipCode: '',
     complement: ''
   });
+
+  // Shipping calculation states
+  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
+  const [selectedShipping, setSelectedShipping] = useState<string>('');
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [shippingCalculated, setShippingCalculated] = useState(false);
 
   // Cupom e pagamento
   const [couponCode, setCouponCode] = useState('');
@@ -45,8 +57,11 @@ const Checkout = () => {
   const [couponLoading, setCouponLoading] = useState(false);
   const [payLoading, setPayLoading] = useState(false);
 
-  // Cálculo de frete e desconto
-  const shippingCost = total >= 200 ? 0 : 20;
+  // Get selected shipping option details
+  const selectedShippingOption = shippingOptions.find(option => option.id === selectedShipping);
+  const shippingCost = selectedShippingOption?.price || 0;
+
+  // Cálculo de desconto
   const discountAmount = appliedCoupon
     ? (appliedCoupon.discount_type === 'percentage'
         ? (total * Number(appliedCoupon.value)) / 100
@@ -61,10 +76,38 @@ const Checkout = () => {
       return;
     }
 
+    // Validate address
+    const addressValidation = validateAddress({
+      cep: shippingInfo.zipCode,
+      address: shippingInfo.address,
+      city: shippingInfo.city,
+      state: shippingInfo.state,
+      number: shippingInfo.number
+    });
+
+    if (!addressValidation.isValid) {
+      toast({
+        title: "Endereço inválido",
+        description: addressValidation.errors.join(', '),
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate shipping selection
+    if (!selectedShipping || !selectedShippingOption) {
+      toast({
+        title: "Selecione uma opção de frete",
+        description: "É necessário escolher uma modalidade de entrega.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Create order
+      // Create order with enhanced shipping data
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -75,7 +118,14 @@ const Checkout = () => {
             ...shippingInfo,
             coupon: appliedCoupon?.code || null,
             discount: Number(discountAmount.toFixed(2)),
-            shipping_cost: shippingCost,
+            shipping: {
+              option_id: selectedShipping,
+              name: selectedShippingOption.name,
+              carrier: selectedShippingOption.carrier,
+              price: selectedShippingOption.price,
+              delivery_time: selectedShippingOption.deliveryTime,
+              description: selectedShippingOption.description
+            }
           }
         })
         .select()
@@ -101,7 +151,7 @@ const Checkout = () => {
       clearCart();
       toast({
         title: "Pedido realizado com sucesso!",
-        description: `Pedido #${order.id.slice(0, 8)} foi criado. Você receberá um email de confirmação.`
+        description: `Pedido #${order.id.slice(0, 8)} foi criado. Entrega via ${selectedShippingOption.name} em ${selectedShippingOption.deliveryTime}.`
       });
       navigate('/account/orders');
     } catch (error) {
@@ -121,8 +171,7 @@ const Checkout = () => {
 
     try {
       const cep = shippingInfo.zipCode.replace(/\D/g, '');
-      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-      const data = await response.json();
+      const data = await fetchCepData(cep);
 
       if (!data.erro) {
         setShippingInfo(prev => ({
@@ -131,11 +180,93 @@ const Checkout = () => {
           city: data.localidade,
           state: data.uf
         }));
+
+        // Trigger shipping calculation after address is populated
+        if (data.localidade && data.uf) {
+          calculateShippingOptions();
+        }
       }
     } catch (error) {
       console.error('Error fetching address:', error);
     }
   };
+
+  const calculateShippingOptions = async () => {
+    if (!shippingInfo.zipCode || !shippingInfo.city || !shippingInfo.state) {
+      return;
+    }
+
+    try {
+      setShippingLoading(true);
+      setShippingCalculated(false);
+
+      // Prepare shipping calculation request
+      const shippingItems = items.map(item => ({
+        weight: getWeightWithFallback(item.weight), // Use product weight or default
+        quantity: item.quantity
+      }));
+
+      const shippingRequest = {
+        origin: ORIGIN_CEP, // Company CEP
+        destination: {
+          cep: shippingInfo.zipCode,
+          address: shippingInfo.address,
+          number: shippingInfo.number || '1',
+          neighborhood: '', // Not critical for calculation
+          city: shippingInfo.city,
+          state: shippingInfo.state
+        },
+        items: shippingItems
+      };
+
+      const result = await calculateShipping(shippingRequest);
+      
+      if (!result.success) {
+        toast({
+          title: "Aviso",
+          description: result.error || "Usando valores estimados de frete",
+          variant: "default"
+        });
+      }
+
+      if (result.success && result.options.length > 0) {
+        setShippingOptions(result.options);
+        // Auto-select the cheapest option
+        setSelectedShipping(result.options[0].id);
+        setShippingCalculated(true);
+      } else {
+        throw new Error(result.error || 'Não foi possível calcular o frete');
+      }
+    } catch (error) {
+      console.error('Shipping calculation error:', error);
+      toast({
+        title: "Erro no cálculo de frete",
+        description: "Não foi possível calcular o frete. Usando valores padrão.",
+        variant: "destructive"
+      });
+      
+      // Fallback to default shipping
+      setShippingOptions([{
+        id: 'default',
+        name: 'Frete Padrão',
+        carrier: 'Correios',
+        price: total >= 200 ? 0 : 20,
+        deliveryTime: '5-7 dias úteis',
+        description: 'Entrega padrão'
+      }]);
+      setSelectedShipping('default');
+      setShippingCalculated(true);
+    } finally {
+      setShippingLoading(false);
+    }
+  };
+
+  // Recalculate shipping when cart items change
+  useEffect(() => {
+    if (shippingCalculated && shippingInfo.zipCode && shippingInfo.city) {
+      calculateShippingOptions();
+    }
+  }, [items]); // Re-run when cart items change
 
   const handleApplyCoupon = async () => {
     if (!couponCode) return;
@@ -203,11 +334,21 @@ const Checkout = () => {
       navigate('/auth');
       return;
     }
+    
+    // Validate shipping selection
+    if (!selectedShipping || !selectedShippingOption) {
+      toast({
+        title: "Selecione uma opção de frete",
+        description: "É necessário escolher uma modalidade de entrega.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setPayLoading(true);
 
-      // 1) Criar o pedido antes do pagamento
-      const shippingCost = total >= 200 ? 0 : 20;
+      // 1) Create the order before payment
       const discountAmount = appliedCoupon
         ? (appliedCoupon.discount_type === 'percentage'
             ? (total * Number(appliedCoupon.value)) / 100
@@ -225,7 +366,14 @@ const Checkout = () => {
             ...shippingInfo,
             coupon: appliedCoupon?.code || null,
             discount: Number(discountAmount.toFixed(2)),
-            shipping_cost: shippingCost,
+            shipping: {
+              option_id: selectedShipping,
+              name: selectedShippingOption.name,
+              carrier: selectedShippingOption.carrier,
+              price: selectedShippingOption.price,
+              delivery_time: selectedShippingOption.deliveryTime,
+              description: selectedShippingOption.description
+            }
           }
         })
         .select()
@@ -374,14 +522,25 @@ const Checkout = () => {
                     </div>
                   </div>
 
-                  <div>
-                    <Label htmlFor="address">Endereço</Label>
-                    <Input
-                      id="address"
-                      required
-                      value={shippingInfo.address}
-                      onChange={(e) => setShippingInfo(prev => ({ ...prev, address: e.target.value }))}
-                    />
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="col-span-3">
+                      <Label htmlFor="address">Endereço</Label>
+                      <Input
+                        id="address"
+                        required
+                        value={shippingInfo.address}
+                        onChange={(e) => setShippingInfo(prev => ({ ...prev, address: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="number">Número</Label>
+                      <Input
+                        id="number"
+                        required
+                        value={shippingInfo.number}
+                        onChange={(e) => setShippingInfo(prev => ({ ...prev, number: e.target.value }))}
+                      />
+                    </div>
                   </div>
 
                   <div>
@@ -393,7 +552,64 @@ const Checkout = () => {
                     />
                   </div>
 
-                  <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                  {/* Shipping Options Section */}
+                  {shippingInfo.zipCode && shippingInfo.city && (
+                    <div className="space-y-4 border-t pt-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-base font-medium">Opções de Entrega</Label>
+                        {shippingLoading && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Calculando frete...
+                          </div>
+                        )}
+                      </div>
+                      
+                      {!shippingLoading && shippingOptions.length > 0 && (
+                        <RadioGroup 
+                          value={selectedShipping} 
+                          onValueChange={setSelectedShipping}
+                          className="space-y-3"
+                        >
+                          {shippingOptions.map((option) => (
+                            <div key={option.id} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50">
+                              <RadioGroupItem value={option.id} id={option.id} />
+                              <Label htmlFor={option.id} className="flex-1 cursor-pointer">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <p className="font-medium">{option.name}</p>
+                                    <p className="text-sm text-muted-foreground">{option.description}</p>
+                                    <p className="text-sm text-muted-foreground">Prazo: {option.deliveryTime}</p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="font-bold">R$ {option.price.toFixed(2)}</p>
+                                    <p className="text-xs text-muted-foreground">{option.carrier}</p>
+                                  </div>
+                                </div>
+                              </Label>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                      )}
+                      
+                      {!shippingLoading && shippingOptions.length === 0 && shippingInfo.zipCode && (
+                        <div className="text-center py-4 text-muted-foreground">
+                          <p>Preencha o endereço completo para calcular o frete</p>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={calculateShippingOptions}
+                            className="mt-2"
+                          >
+                            Calcular Frete
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <Button type="submit" className="w-full" size="lg" disabled={loading || !selectedShipping}>
                     {loading ? 'Processando...' : 'Confirmar Pedido'}
                   </Button>
                 </form>
@@ -456,7 +672,18 @@ const Checkout = () => {
 
                   <div className="flex justify-between">
                     <span>Frete</span>
-                    <span>{shippingCost === 0 ? 'Grátis' : `R$ ${shippingCost.toFixed(2)}`}</span>
+                    <span>
+                      {selectedShippingOption ? (
+                        <div className="text-right">
+                          <div>R$ {selectedShippingOption.price.toFixed(2)}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {selectedShippingOption.name} - {selectedShippingOption.deliveryTime}
+                          </div>
+                        </div>
+                      ) : (
+                        shippingLoading ? 'Calculando...' : 'A calcular'
+                      )}
+                    </span>
                   </div>
                   <div className="flex justify-between font-bold text-lg">
                     <span>Total</span>

@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
+import { NotificationBell } from "@/components/notifications";
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -116,6 +117,9 @@ const Header = () => {
                 </Badge>
               )}
             </Button>
+
+            {/* Notifications - Only show when user is logged in */}
+            {user && <NotificationBell />}
 
             {/* User menu */}
             <DropdownMenu>

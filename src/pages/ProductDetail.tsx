@@ -15,6 +15,8 @@ import Header from '@/components/Header';
 import { ArrowLeft, Star, Truck, Shield, RotateCcw } from 'lucide-react';
 import StlViewer from '@/components/StlViewer';
 import { useAuth } from '@/contexts/AuthContext';
+import RecommendationSection from '@/components/RecommendationSection';
+import InteractionTracker from '@/components/InteractionTracker';
 
 interface Product {
   id: string;
@@ -409,7 +411,37 @@ const ProductDetail = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Recommendations Section */}
+        <div className="mt-12 space-y-8">
+          <RecommendationSection
+            title="Produtos Relacionados"
+            type="content"
+            productId={product?.id}
+            limit={4}
+          />
+          
+          <RecommendationSection
+            title="Quem viu este produto também visualizou"
+            type="collaborative"
+            productId={product?.id}
+            limit={4}
+          />
+        </div>
       </div>
+
+      {/* Track product view interaction */}
+      {product && (
+        <InteractionTracker
+          productId={product.id}
+          interactionType="view"
+          interactionData={{
+            product_name: product.name,
+            category: product.category,
+            price: product.price
+          }}
+        />
+      )}
     </div>
   );
 };

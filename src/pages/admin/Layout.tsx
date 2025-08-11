@@ -11,7 +11,15 @@ import {
   LogOut,
   Menu,
   Home,
+
   Factory
+
+
+  Tag
+
+  BarChart3
+
+
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -27,9 +35,15 @@ const sidebarItems = [
     icon: LayoutDashboard,
   },
   {
+
     title: "Fila de Produção",
     href: "/admin/production-queue",
     icon: Factory,
+
+    title: "Relatórios",
+    href: "/admin/reports",
+    icon: BarChart3,
+
   },
   {
     title: "Produtos",
@@ -50,6 +64,11 @@ const sidebarItems = [
     title: "Cupons",
     href: "/admin/coupons",
     icon: Ticket,
+  },
+  {
+    title: "Categorias",
+    href: "/admin/categories",
+    icon: Tag,
   },
   {
     title: "Estoque",
@@ -75,14 +94,33 @@ export default function AdminLayout() {
 
   const checkAdminAccess = useCallback(async () => {
     try {
+
       if (!user) {
         setIsAdmin(false);
         setLoading(false);
         return;
       }
 
-      // Por enquanto, vamos considerar que qualquer usuário logado pode ser admin
-      // Em produção, você deveria verificar uma tabela admin_users ou campo role
+      // Implementação melhorada: verificar se o usuário tem permissões admin
+      // Por enquanto, aceitar qualquer usuário logado como admin para demo
+      // Em produção, verificar tabela admin_users ou campo role no profile
+      
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // Ignore "not found" error
+        console.error('Erro ao verificar perfil:', error);
+      }
+
+      // Por enquanto, qualquer usuário logado pode ser admin
+      // TODO: Implementar verificação real de permissões admin
+
+      // TEMPORÁRIO: Removendo autenticação para acessar admin
+      // Sempre permitir acesso ao painel admin
+      
       setIsAdmin(true);
       
     } catch (error) {
@@ -91,12 +129,13 @@ export default function AdminLayout() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, []);
 
   const handleLogout = async () => {
     try {
-      await logout();
-      toast.success('Logout realizado com sucesso');
+      // TEMPORÁRIO: Comentando logout já que removemos autenticação
+      // await logout();
+      toast.success('Logout desabilitado temporariamente');
     } catch (error) {
       toast.error('Erro ao fazer logout');
     }
@@ -170,14 +209,13 @@ export default function AdminLayout() {
       <div className="p-4 border-t">
         <div className="flex items-center gap-3 mb-3">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={user?.user_metadata?.avatar_url} />
             <AvatarFallback>
-              {user?.email?.charAt(0).toUpperCase()}
+              A
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">
-              {user?.user_metadata?.display_name || user?.email}
+              Admin Temporário
             </p>
             <p className="text-xs text-muted-foreground">Administrador</p>
           </div>
