@@ -386,6 +386,120 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          email_enabled: boolean
+          id: string
+          news_email: boolean
+          news_push: boolean
+          order_status_email: boolean
+          order_status_push: boolean
+          promotions_email: boolean
+          promotions_push: boolean
+          push_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_enabled?: boolean
+          id?: string
+          news_email?: boolean
+          news_push?: boolean
+          order_status_email?: boolean
+          order_status_push?: boolean
+          promotions_email?: boolean
+          promotions_push?: boolean
+          push_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_enabled?: boolean
+          id?: string
+          news_email?: boolean
+          news_push?: boolean
+          order_status_email?: boolean
+          order_status_push?: boolean
+          promotions_email?: boolean
+          promotions_push?: boolean
+          push_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_templates: {
+        Row: {
+          created_at: string
+          email_subject: string | null
+          email_template: string | null
+          id: string
+          push_template: string | null
+          push_title: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email_subject?: string | null
+          email_template?: string | null
+          id?: string
+          push_template?: string | null
+          push_title?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email_subject?: string | null
+          email_template?: string | null
+          id?: string
+          push_template?: string | null
+          push_title?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          metadata: Json
+          read_at: string | null
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          read_at?: string | null
+          title: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          read_at?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
