@@ -11,6 +11,7 @@ import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import Account from "./pages/Account";
+import AreaCliente from "./pages/AreaCliente";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -37,12 +38,27 @@ const App = () => (
               } />
               <Route path="/conta" element={
                 <ProtectedRoute>
-                  <Account />
+                  <AreaCliente />
+                </ProtectedRoute>
+              } />
+              <Route path="/account" element={
+                <ProtectedRoute>
+                  <AreaCliente />
                 </ProtectedRoute>
               } />
               <Route path="/account/orders" element={
                 <ProtectedRoute>
-                  <Account />
+                  <AreaCliente />
+                </ProtectedRoute>
+              } />
+              <Route path="/account/wishlist" element={
+                <ProtectedRoute>
+                  <AreaCliente />
+                </ProtectedRoute>
+              } />
+              <Route path="/account/addresses" element={
+                <ProtectedRoute>
+                  <AreaCliente />
                 </ProtectedRoute>
               } />
               <Route path="/auth" element={<Auth />} />
