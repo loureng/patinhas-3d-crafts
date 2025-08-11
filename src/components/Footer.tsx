@@ -1,7 +1,7 @@
 import { Heart, Mail, Phone, MapPin, Facebook, Instagram, Twitter } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import NewsletterSubscription from "./blog/NewsletterSubscription";
 
 const Footer = () => {
   return (
@@ -62,6 +62,11 @@ const Footer = () => {
                 </a>
               </li>
               <li>
+                <a href="/blog" className="text-muted-foreground hover:text-primary transition-colors">
+                  Blog
+                </a>
+              </li>
+              <li>
                 <a href="/promocoes" className="text-muted-foreground hover:text-primary transition-colors">
                   Promoções
                 </a>
@@ -107,17 +112,7 @@ const Footer = () => {
             <p className="text-sm text-muted-foreground">
               Receba ofertas exclusivas e novidades em primeira mão!
             </p>
-            <div className="space-y-2">
-              <Input 
-                placeholder="Seu e-mail" 
-                type="email"
-                className="w-full"
-              />
-              <Button className="w-full bg-gradient-primary hover:opacity-90 transition-opacity">
-                <Mail className="h-4 w-4 mr-2" />
-                Inscrever-se
-              </Button>
-            </div>
+            <NewsletterSubscription variant="compact" />
           </div>
         </div>
 
