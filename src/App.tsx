@@ -28,6 +28,9 @@ const AdminInventory = lazy(() => import("./pages/admin/Inventory"));
 const AdminReports = lazy(() => import("./pages/admin/Reports"));
 const AdminDemo = lazy(() => import("./pages/AdminDemo"));
 
+const TrackingPedidosDemo = lazy(() => import("./components/cliente/TrackingPedidosDemo"));
+
+
 const ShippingDemo = lazy(() => import("./pages/ShippingDemo"));
 
 
@@ -35,6 +38,7 @@ const AdminCategories = lazy(() => import("./pages/admin/Categories"));
 const AdminSettings = lazy(() => import("./pages/admin/Settings"));
 
 const NotificationDemo = lazy(() => import("./pages/NotificationDemo"));
+
 
 
 const BlogList = lazy(() => import("./pages/blog/BlogList"));
@@ -131,6 +135,9 @@ const App = () => (
                   <Route path="settings" element={<AdminSettings />} />
                 </Route>
                 <Route path="/admin-demo" element={<AdminDemo />} />
+
+                <Route path="/area-cliente-demo" element={<TrackingPedidosDemo />} />
+
 
                 <Route path="/shipping-demo" element={<ShippingDemo />} />
 

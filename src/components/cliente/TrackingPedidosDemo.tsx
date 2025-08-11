@@ -6,7 +6,6 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { usePedidos } from '@/hooks/usePedidos';
 import { 
   Package,
   CheckCircle,
@@ -21,28 +20,170 @@ import {
   MoreVertical
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import EditarEnderecoPedido from './EditarEnderecoPedido';
-import { Endereco } from '@/types/pedidos';
 
-const TrackingPedidos = () => {
-  const { pedidos, loading, error, statusLabels, getStatusProgress, cancelarPedido, reordenarPedido } = usePedidos();
+// Dados simulados para demonstração
+const pedidosDemo = [
+  {
+    id: 'demo-001',
+    created_at: '2024-08-10T10:00:00Z',
+    total_amount: 129.90,
+    status: 'processing',
+    estimated_delivery: '2024-08-15T18:00:00Z',
+    shipping_address: {
+      street: 'Rua das Flores',
+      number: '123',
+      complement: 'Apto 45',
+      neighborhood: 'Jardim Primavera',
+      city: 'São Paulo',
+      state: 'SP',
+      zipCode: '01234-567'
+    },
+    status_history: [
+      {
+        status: 'pending',
+        timestamp: '2024-08-10T10:00:00Z',
+        description: 'Pedido confirmado e aguardando processamento'
+      },
+      {
+        status: 'processing',
+        timestamp: '2024-08-10T14:30:00Z',
+        description: 'Pedido em produção'
+      }
+    ]
+  },
+  {
+    id: 'demo-002',
+    created_at: '2024-08-08T15:30:00Z',
+    total_amount: 89.50,
+    status: 'shipped',
+    estimated_delivery: '2024-08-12T18:00:00Z',
+    shipping_address: {
+      street: 'Avenida Central',
+      number: '456',
+      neighborhood: 'Centro',
+      city: 'São Paulo',
+      state: 'SP',
+      zipCode: '01000-000'
+    },
+    status_history: [
+      {
+        status: 'pending',
+        timestamp: '2024-08-08T15:30:00Z',
+        description: 'Pedido confirmado e aguardando processamento'
+      },
+      {
+        status: 'processing',
+        timestamp: '2024-08-08T16:00:00Z',
+        description: 'Pedido em produção'
+      },
+      {
+        status: 'quality_check',
+        timestamp: '2024-08-09T09:00:00Z',
+        description: 'Produto em controle de qualidade'
+      },
+      {
+        status: 'shipped',
+        timestamp: '2024-08-09T16:00:00Z',
+        description: 'Pedido enviado para entrega'
+      }
+    ]
+  },
+  {
+    id: 'demo-003',
+    created_at: '2024-08-05T11:15:00Z',
+    total_amount: 199.90,
+    status: 'delivered',
+    shipping_address: {
+      street: 'Rua do Comércio',
+      number: '789',
+      neighborhood: 'Vila Nova',
+      city: 'São Paulo',
+      state: 'SP',
+      zipCode: '02000-000'
+    },
+    status_history: [
+      {
+        status: 'pending',
+        timestamp: '2024-08-05T11:15:00Z',
+        description: 'Pedido confirmado e aguardando processamento'
+      },
+      {
+        status: 'processing',
+        timestamp: '2024-08-05T12:00:00Z',
+        description: 'Pedido em produção'
+      },
+      {
+        status: 'quality_check',
+        timestamp: '2024-08-06T10:00:00Z',
+        description: 'Produto em controle de qualidade'
+      },
+      {
+        status: 'shipped',
+        timestamp: '2024-08-06T16:00:00Z',
+        description: 'Pedido enviado para entrega'
+      },
+      {
+        status: 'delivered',
+        timestamp: '2024-08-08T14:30:00Z',
+        description: 'Pedido entregue'
+      }
+    ]
+  }
+];
+
+const TrackingPedidosDemo = () => {
+  const [pedidos, setPedidos] = useState(pedidosDemo);
   const [cancelarDialogOpen, setCancelarDialogOpen] = useState(false);
-  const [editarEnderecoOpen, setEditarEnderecoOpen] = useState(false);
   const [pedidoSelecionado, setPedidoSelecionado] = useState<string | null>(null);
-  const [enderecoAtual, setEnderecoAtual] = useState<Endereco | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+
+  const statusLabels = {
+    pending: 'Pedido Confirmado',
+    processing: 'Em Produção',
+    quality_check: 'Controle de Qualidade',
+    shipped: 'Enviado',
+    delivered: 'Entregue',
+    cancelled: 'Cancelado'
+  };
+
+  const getStatusProgress = (status: string): number => {
+    const statusOrder = ['pending', 'processing', 'quality_check', 'shipped', 'delivered'];
+    const currentIndex = statusOrder.indexOf(status);
+    return currentIndex >= 0 ? ((currentIndex + 1) / statusOrder.length) * 100 : 0;
+  };
 
   const handleCancelarPedido = async () => {
     if (!pedidoSelecionado) return;
     
     try {
       setActionLoading(true);
-      await cancelarPedido(pedidoSelecionado);
+      
+      // Simular delay da API
+      await new Promise(resolve => setTimeout(resolve, DEMO_API_DELAY));
+      
+      // Atualizar status para cancelado
+      setPedidos(prev => prev.map(pedido => 
+        pedido.id === pedidoSelecionado 
+          ? { 
+              ...pedido, 
+              status: 'cancelled',
+              status_history: [
+                ...pedido.status_history,
+                {
+                  status: 'cancelled',
+                  timestamp: new Date().toISOString(),
+                  description: 'Pedido cancelado pelo cliente'
+                }
+              ]
+            }
+          : pedido
+      ));
+      
       toast.success('Pedido cancelado com sucesso');
       setCancelarDialogOpen(false);
       setPedidoSelecionado(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Erro ao cancelar pedido');
+      toast.error('Erro ao cancelar pedido');
     } finally {
       setActionLoading(false);
     }
@@ -51,10 +192,34 @@ const TrackingPedidos = () => {
   const handleReordenarPedido = async (pedidoId: string) => {
     try {
       setActionLoading(true);
-      const result = await reordenarPedido(pedidoId);
+      
+      // Simular delay da API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Criar novo pedido baseado no anterior
+      const pedidoOriginal = pedidos.find(p => p.id === pedidoId);
+      if (pedidoOriginal) {
+        const novoPedido = {
+          ...pedidoOriginal,
+          id: 'demo-new-' + Date.now(),
+          created_at: new Date().toISOString(),
+          status: 'pending',
+          estimated_delivery: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+          status_history: [
+            {
+              status: 'pending',
+              timestamp: new Date().toISOString(),
+              description: 'Pedido confirmado e aguardando processamento (Reordenado)'
+            }
+          ]
+        };
+        
+        setPedidos(prev => [novoPedido, ...prev]);
+      }
+      
       toast.success('Novo pedido criado com sucesso!');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Erro ao reordenar pedido');
+      toast.error('Erro ao reordenar pedido');
     } finally {
       setActionLoading(false);
     }
@@ -67,32 +232,6 @@ const TrackingPedidos = () => {
   const canEditOrder = (status: string) => {
     return ['pending', 'processing'].includes(status);
   };
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-muted rounded w-1/3 mb-6"></div>
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-64 bg-muted rounded mb-4"></div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card className="border-destructive">
-        <CardContent className="p-6">
-          <div className="flex items-center space-x-2">
-            <AlertCircle className="h-5 w-5 text-destructive" />
-            <p className="text-destructive">Erro ao carregar pedidos: {error}</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -137,25 +276,22 @@ const TrackingPedidos = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Rastreamento de Pedidos</h2>
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight">🎯 Demo - Área do Cliente</h1>
         <p className="text-muted-foreground">
-          Acompanhe o status de todos os seus pedidos em tempo real
+          Demonstração das funcionalidades implementadas (dados simulados)
         </p>
       </div>
 
-      {pedidos.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <ShoppingBag className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Nenhum pedido encontrado</h3>
-            <p className="text-muted-foreground mb-4">
-              Você ainda não fez nenhum pedido. Explore nossos produtos e faça seu primeiro pedido!
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Rastreamento de Pedidos</h2>
+          <p className="text-muted-foreground">
+            Acompanhe o status de todos os seus pedidos em tempo real
+          </p>
+        </div>
+
         <div className="space-y-6">
           {pedidos.map((pedido) => (
             <Card key={pedido.id} className="overflow-hidden">
@@ -164,7 +300,7 @@ const TrackingPedidos = () => {
                   <div>
                     <CardTitle className="flex items-center space-x-2">
                       {getStatusIcon(pedido.status)}
-                      <span>Pedido #{pedido.id.slice(0, 8)}</span>
+                      <span>Pedido #{pedido.id}</span>
                     </CardTitle>
                     <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
                       <div className="flex items-center">
@@ -196,12 +332,8 @@ const TrackingPedidos = () => {
                         </DropdownMenuItem>
                         
                         {canEditOrder(pedido.status) && (
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setPedidoSelecionado(pedido.id);
-                              setEnderecoAtual(pedido.shipping_address);
-                              setEditarEnderecoOpen(true);
-                            }}
+                          <DropdownMenuItem 
+                            onClick={() => toast.info('Modal de editar endereço foi implementado!')}
                           >
                             <Edit className="mr-2 h-4 w-4" />
                             Editar Endereço
@@ -225,6 +357,7 @@ const TrackingPedidos = () => {
                   </div>
                 </div>
               </CardHeader>
+              
               <CardContent className="space-y-6">
                 {/* Barra de Progresso */}
                 <div className="space-y-2">
@@ -317,39 +450,22 @@ const TrackingPedidos = () => {
                   </>
                 )}
 
-                {/* Histórico Detalhado */}
-                {pedido.status_history && pedido.status_history.length > 1 && (
-                  <>
-                    <Separator />
-                    <div className="space-y-2">
-                      <h4 className="font-semibold text-sm">Histórico Detalhado</h4>
-                      <div className="space-y-2 max-h-32 overflow-y-auto">
-                        {pedido.status_history
-                          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-                          .map((history, index) => (
-                          <div key={index} className="flex justify-between items-start text-xs">
-                            <span className="text-muted-foreground">
-                              {history.description || statusLabels[history.status as keyof typeof statusLabels] || history.status}
-                            </span>
-                            <span className="text-muted-foreground whitespace-nowrap ml-2">
-                              {new Date(history.timestamp).toLocaleDateString('pt-BR', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
+                {/* Endereço de Entrega */}
+                <Separator />
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-sm">Endereço de Entrega</h4>
+                  <div className="text-sm text-muted-foreground">
+                    <p>{pedido.shipping_address.street}, {pedido.shipping_address.number}</p>
+                    {pedido.shipping_address.complement && <p>{pedido.shipping_address.complement}</p>}
+                    <p>{pedido.shipping_address.neighborhood}</p>
+                    <p>{pedido.shipping_address.city}, {pedido.shipping_address.state} - {pedido.shipping_address.zipCode}</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
-      )}
+      </div>
 
       {/* Dialog de confirmação para cancelar pedido */}
       <Dialog open={cancelarDialogOpen} onOpenChange={setCancelarDialogOpen}>
@@ -378,20 +494,8 @@ const TrackingPedidos = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Dialog para editar endereço */}
-      <EditarEnderecoPedido
-        pedidoId={pedidoSelecionado}
-        enderecoAtual={enderecoAtual}
-        open={editarEnderecoOpen}
-        onClose={() => {
-          setEditarEnderecoOpen(false);
-          setPedidoSelecionado(null);
-          setEnderecoAtual(null);
-        }}
-      />
     </div>
   );
 };
 
-export default TrackingPedidos;
+export default TrackingPedidosDemo;
