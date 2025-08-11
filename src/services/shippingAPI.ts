@@ -43,7 +43,7 @@ const SHIPPING_CONFIG = {
 
 // Calcula distância entre duas coordenadas usando fórmula de Haversine
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371; // Raio da Terra em km
+  const R = EARTH_RADIUS_KM; // Raio da Terra em km
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
   const a = 
