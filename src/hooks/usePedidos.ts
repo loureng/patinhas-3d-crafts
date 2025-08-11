@@ -203,7 +203,7 @@ export const usePedidos = () => {
           total_amount: novoTotal,
           status: 'pending',
           shipping_address: pedidoOriginal.shipping_address,
-          payment_method: null // Usuário terá que escolher novamente
+          payment_method: 'pending' // Usuário terá que escolher novamente
         })
         .select()
         .single();
