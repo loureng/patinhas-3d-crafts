@@ -159,7 +159,7 @@ export class ProductionQueueService {
 
     // Update additional fields if provided
     if (updateData.estimated_completion || updateData.assigned_to || updateData.priority) {
-      const updateFields: any = {};
+      const updateFields: Partial<Pick<ProductionQueueItem, 'estimated_completion' | 'assigned_to' | 'priority'>> = {};
       
       if (updateData.estimated_completion) {
         updateFields.estimated_completion = updateData.estimated_completion;

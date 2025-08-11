@@ -10,6 +10,11 @@ export type ProductionStatus =
 
 export type ProductionPriority = 1 | 2 | 3 | 4 | 5; // 1=highest, 5=lowest
 
+// Interface for customization details stored in JSONB
+export interface CustomizationDetails {
+  [key: string]: unknown;
+}
+
 export interface ProductionQueueItem {
   id: string;
   order_id: string;
@@ -18,7 +23,7 @@ export interface ProductionQueueItem {
   
   // Production details
   item_name: string;
-  customization_details?: any;
+  customization_details?: CustomizationDetails;
   production_notes?: string;
   
   // Status and timeline
@@ -73,7 +78,7 @@ export interface ProductionQueueItemWithDetails extends ProductionQueueItem {
     product_id: string;
     quantity: number;
     price: number;
-    customization?: any;
+    customization?: CustomizationDetails;
   };
   product: {
     id: string;

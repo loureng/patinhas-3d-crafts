@@ -132,7 +132,7 @@ export const useUserProductionQueue = () => {
 
 export const useProductionQueueItem = (itemId: string | null) => {
   const [item, setItem] = useState<ProductionQueueItemWithDetails | null>(null);
-  const [statusHistory, setStatusHistory] = useState<any[]>([]);
+  const [statusHistory, setStatusHistory] = useState<ProductionStatusHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
