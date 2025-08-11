@@ -64,7 +64,7 @@ const getCepCoordinates = async (cep: string, city: string, state: string): Prom
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=br`,
       {
         headers: {
-          'User-Agent': 'Jardim das Patinhas E-commerce'
+          'User-Agent': 'JardimDasPatinhasEcommerce/1.0 (contact@jardimdaspatinhas.com.br)'
         }
       }
     );
