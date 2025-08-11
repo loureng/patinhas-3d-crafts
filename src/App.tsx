@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import { Suspense, lazy } from "react";
 
 // Lazy load components
@@ -24,8 +25,22 @@ const AdminOrders = lazy(() => import("./pages/admin/Orders"));
 const AdminCustomers = lazy(() => import("./pages/admin/Customers"));
 const AdminCoupons = lazy(() => import("./pages/admin/Coupons"));
 const AdminInventory = lazy(() => import("./pages/admin/Inventory"));
+const AdminReports = lazy(() => import("./pages/admin/Reports"));
 const AdminDemo = lazy(() => import("./pages/AdminDemo"));
+
 const TrackingPedidosDemo = lazy(() => import("./components/cliente/TrackingPedidosDemo"));
+
+
+const ShippingDemo = lazy(() => import("./pages/ShippingDemo"));
+
+
+const AdminCategories = lazy(() => import("./pages/admin/Categories"));
+const AdminSettings = lazy(() => import("./pages/admin/Settings"));
+
+const NotificationDemo = lazy(() => import("./pages/NotificationDemo"));
+
+
+
 const BlogList = lazy(() => import("./pages/blog/BlogList"));
 const BlogPost = lazy(() => import("./pages/blog/BlogPost"));
 
@@ -58,7 +73,8 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
-        <CartProvider>
+        <NotificationProvider>
+          <CartProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -107,20 +123,26 @@ const App = () => (
                 <Route path="/blog" element={<BlogList />} />
                 <Route path="/blog/:slug" element={<BlogPost />} />
                 {/* Admin Routes */}
-                <Route path="/admin" element={
-                  <ProtectedRoute>
-                    <AdminLayout />
-                  </ProtectedRoute>
-                }>
+                <Route path="/admin" element={<AdminLayout />}>
                   <Route index element={<AdminDashboard />} />
+                  <Route path="reports" element={<AdminReports />} />
                   <Route path="products" element={<AdminProducts />} />
+                  <Route path="categories" element={<AdminCategories />} />
                   <Route path="orders" element={<AdminOrders />} />
                   <Route path="customers" element={<AdminCustomers />} />
                   <Route path="coupons" element={<AdminCoupons />} />
                   <Route path="inventory" element={<AdminInventory />} />
+                  <Route path="settings" element={<AdminSettings />} />
                 </Route>
                 <Route path="/admin-demo" element={<AdminDemo />} />
+
                 <Route path="/area-cliente-demo" element={<TrackingPedidosDemo />} />
+
+
+                <Route path="/shipping-demo" element={<ShippingDemo />} />
+
+                <Route path="/notification-demo" element={<NotificationDemo />} />
+
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
@@ -132,7 +154,8 @@ const App = () => (
             phoneNumber="5511999999999" 
             businessName="Jardim das Patinhas"
           />
-        </CartProvider>
+          </CartProvider>
+        </NotificationProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
