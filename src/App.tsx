@@ -15,6 +15,14 @@ import AreaCliente from "./pages/AreaCliente";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminLayout from "./pages/admin/Layout";
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminProducts from "./pages/admin/Products";
+import AdminOrders from "./pages/admin/Orders";
+import AdminCustomers from "./pages/admin/Customers";
+import AdminCoupons from "./pages/admin/Coupons";
+import AdminInventory from "./pages/admin/Inventory";
+import AdminDemo from "./pages/AdminDemo";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +74,20 @@ const App = () => (
               <Route path="/casa" element={<Products />} />
               <Route path="/jardim" element={<Products />} />
               <Route path="/personalizacao" element={<Products />} />
+              {/* Admin Routes */}
+              <Route path="/admin" element={
+                <ProtectedRoute>
+                  <AdminLayout />
+                </ProtectedRoute>
+              }>
+                <Route index element={<AdminDashboard />} />
+                <Route path="products" element={<AdminProducts />} />
+                <Route path="orders" element={<AdminOrders />} />
+                <Route path="customers" element={<AdminCustomers />} />
+                <Route path="coupons" element={<AdminCoupons />} />
+                <Route path="inventory" element={<AdminInventory />} />
+              </Route>
+              <Route path="/admin-demo" element={<AdminDemo />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
