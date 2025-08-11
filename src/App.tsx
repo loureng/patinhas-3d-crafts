@@ -25,6 +25,7 @@ const AdminCustomers = lazy(() => import("./pages/admin/Customers"));
 const AdminCoupons = lazy(() => import("./pages/admin/Coupons"));
 const AdminInventory = lazy(() => import("./pages/admin/Inventory"));
 const AdminDemo = lazy(() => import("./pages/AdminDemo"));
+const ShippingDemo = lazy(() => import("./pages/ShippingDemo"));
 const BlogList = lazy(() => import("./pages/blog/BlogList"));
 const BlogPost = lazy(() => import("./pages/blog/BlogPost"));
 
@@ -119,6 +120,7 @@ const App = () => (
                   <Route path="inventory" element={<AdminInventory />} />
                 </Route>
                 <Route path="/admin-demo" element={<AdminDemo />} />
+                <Route path="/shipping-demo" element={<ShippingDemo />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
