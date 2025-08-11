@@ -7,6 +7,7 @@ export interface CartItem {
   price: number;
   image: string;
   quantity: number;
+  weight?: number; // Product weight in grams
   customization?: {
     text?: string;
     color?: string;
