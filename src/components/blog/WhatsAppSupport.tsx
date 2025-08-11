@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 interface WhatsAppSupportProps {
   phoneNumber?: string;
@@ -20,6 +21,7 @@ const WhatsAppSupport = ({
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [isOnline, setIsOnline] = useState(true); // Simulated online status
+  const { trackWhatsAppClick } = useAnalytics();
 
   const predefinedMessages = [
     "Olá! Gostaria de saber mais sobre os produtos.",
@@ -37,6 +39,9 @@ const WhatsAppSupport = ({
 
     const encodedMessage = encodeURIComponent(messageToSend);
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+    
+    // Track WhatsApp click
+    trackWhatsAppClick();
     
     window.open(whatsappUrl, '_blank');
     setMessage("");

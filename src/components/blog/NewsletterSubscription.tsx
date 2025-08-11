@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 interface NewsletterSubscriptionProps {
   variant?: "default" | "compact" | "sidebar";
@@ -18,6 +19,7 @@ const NewsletterSubscription = ({
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const { trackNewsletterSignup } = useAnalytics();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,15 +32,23 @@ const NewsletterSubscription = ({
     setIsLoading(true);
 
     try {
-      // Here you would integrate with Supabase to save the email
-      // For now, simulating API call
+      // Simulate newsletter subscription
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // Track newsletter signup
+      trackNewsletterSignup(variant);
+      
       setIsSubscribed(true);
-      setEmail("");
       toast.success("Inscrição realizada com sucesso!");
+      
+      // Reset after 3 seconds
+      setTimeout(() => {
+        setIsSubscribed(false);
+        setEmail("");
+      }, 3000);
+      
     } catch (error) {
-      toast.error("Erro ao inscrever. Tente novamente.");
+      toast.error("Erro ao realizar inscrição. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
