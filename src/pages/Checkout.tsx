@@ -348,7 +348,7 @@ const Checkout = () => {
     try {
       setPayLoading(true);
 
-      // 1) Criar o pedido antes do pagamento
+      // 1) Create the order before payment
       const discountAmount = appliedCoupon
         ? (appliedCoupon.discount_type === 'percentage'
             ? (total * Number(appliedCoupon.value)) / 100
