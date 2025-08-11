@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
+import { useWishlist } from "@/hooks/useWishlist";
 import { NotificationBell } from "@/components/notifications";
 
 const Header = () => {
@@ -20,6 +21,7 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { user, signOut } = useAuth();
   const { itemCount } = useCart();
+  const { items: wishlistItems } = useWishlist();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -96,11 +98,18 @@ const Header = () => {
             </Button>
 
             {/* Wishlist */}
-            <Button variant="ghost" size="icon" className="relative">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="relative"
+              onClick={() => navigate('/wishlist')}
+            >
               <Heart className="h-5 w-5" />
-              <Badge className="absolute -top-2 -right-2 px-1 min-w-[18px] h-[18px] text-xs bg-secondary text-secondary-foreground">
-                2
-              </Badge>
+              {wishlistItems.length > 0 && (
+                <Badge className="absolute -top-2 -right-2 px-1 min-w-[18px] h-[18px] text-xs bg-secondary text-secondary-foreground">
+                  {wishlistItems.length}
+                </Badge>
+              )}
             </Button>
 
             {/* Cart */}

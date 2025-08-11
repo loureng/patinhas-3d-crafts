@@ -11,6 +11,10 @@ export interface WishlistItem {
     price: number;
     image_url: string;
     description: string;
+    category?: string;
+    rating?: number;
+    reviews?: number;
+    original_price?: number;
   };
 }
 

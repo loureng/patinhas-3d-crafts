@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import LazyImage from "@/components/ui/LazyImage";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import WishlistButton from "@/components/WishlistButton";
 
 interface ProductCardProps {
   id: string;
@@ -121,18 +122,16 @@ const ProductCard = ({
           </div>
 
           {/* Wishlist button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity ${
-              isInWishlist ? 'text-red-500' : 'text-muted-foreground hover:text-red-500'
-            }`}
-            onClick={handleToggleWishlist}
-          >
-            <Heart 
-              className={`h-4 w-4 ${isInWishlist ? 'fill-current' : ''}`} 
+          {/* Wishlist button - appears on hover */}
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <WishlistButton 
+              productId={id}
+              productName={name}
+              variant="ghost"
+              size="icon"
+              className="bg-white/80 hover:bg-white"
             />
-          </Button>
+          </div>
 
           {/* Quick add to cart - appears on hover */}
           <div className="absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">

@@ -13,6 +13,7 @@ const Index = lazy(() => import("./pages/Index"));
 const Products = lazy(() => import("./pages/Products"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const Cart = lazy(() => import("./pages/Cart"));
+const Wishlist = lazy(() => import("./pages/Wishlist"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const Account = lazy(() => import("./pages/Account"));
 const AreaCliente = lazy(() => import("./pages/AreaCliente"));
@@ -88,6 +89,8 @@ const App = () => (
                 <Route path="/produto/:id" element={<ProductDetail />} />
                 <Route path="/carrinho" element={<Cart />} />
                 <Route path="/cart" element={<Cart />} />
+                <Route path="/wishlist" element={<Wishlist />} />
+                <Route path="/lista-desejos" element={<Wishlist />} />
                 <Route path="/checkout" element={
                   <ProtectedRoute>
                     <Checkout />
