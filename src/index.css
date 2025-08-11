@@ -168,4 +168,27 @@ All colors MUST be HSL.
   .bg-gradient-hero {
     background: var(--gradient-hero);
   }
+
+  /* Shimmer animation for lazy loading */
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  .animate-bounce-subtle {
+    animation: bounce-subtle 2s infinite;
+  }
+
+  @keyframes bounce-subtle {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-2px);
+    }
+  }
 }

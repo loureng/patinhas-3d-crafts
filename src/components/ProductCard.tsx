@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
+import LazyImage from "@/components/ui/LazyImage";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 interface ProductCardProps {
   id: string;
@@ -37,6 +39,7 @@ const ProductCard = ({
   isInWishlist = false,
 }: ProductCardProps) => {
   const { addItem } = useCart();
+  const { trackAddToCart, trackViewItem } = useAnalytics();
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -48,8 +51,35 @@ const ProductCard = ({
         price,
         image
       });
+      
+      // Track add to cart event
+      trackAddToCart({
+        currency: 'BRL',
+        value: price,
+        items: [{
+          item_id: id,
+          item_name: name,
+          quantity: 1,
+          price: price,
+        }],
+      });
+      
       onAddToCart?.();
     }
+  };
+
+  const handleProductClick = () => {
+    // Track product view
+    trackViewItem({
+      currency: 'BRL',
+      value: price,
+      items: [{
+        item_id: id,
+        item_name: name,
+        quantity: 1,
+        price: price,
+      }],
+    });
   };
 
   const handleToggleWishlist = (e: React.MouseEvent) => {
@@ -59,12 +89,12 @@ const ProductCard = ({
   };
 
   return (
-    <Link to={`/produto/${id}`} className="block">
+    <Link to={`/produto/${id}`} className="block" onClick={handleProductClick}>
       <Card className="group relative overflow-hidden border-border hover:shadow-elegant transition-all duration-300 hover:scale-[1.02] shadow-card">
         <div className="relative">
           {/* Product Image */}
           <div className="aspect-square overflow-hidden bg-muted/30">
-            <img
+            <LazyImage
               src={image}
               alt={name}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"

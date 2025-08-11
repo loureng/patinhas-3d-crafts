@@ -5,29 +5,53 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
-import Index from "./pages/Index";
-import Products from "./pages/Products";
-import ProductDetail from "./pages/ProductDetail";
-import Cart from "./pages/Cart";
-import Checkout from "./pages/Checkout";
-import Account from "./pages/Account";
-import AreaCliente from "./pages/AreaCliente";
-import Auth from "./pages/Auth";
-import NotFound from "./pages/NotFound";
+import { Suspense, lazy } from "react";
+
+// Lazy load components
+const Index = lazy(() => import("./pages/Index"));
+const Products = lazy(() => import("./pages/Products"));
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
+const Cart = lazy(() => import("./pages/Cart"));
+const Checkout = lazy(() => import("./pages/Checkout"));
+const Account = lazy(() => import("./pages/Account"));
+const AreaCliente = lazy(() => import("./pages/AreaCliente"));
+const Auth = lazy(() => import("./pages/Auth"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const AdminLayout = lazy(() => import("./pages/admin/Layout"));
+const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
+const AdminProducts = lazy(() => import("./pages/admin/Products"));
+const AdminOrders = lazy(() => import("./pages/admin/Orders"));
+const AdminCustomers = lazy(() => import("./pages/admin/Customers"));
+const AdminCoupons = lazy(() => import("./pages/admin/Coupons"));
+const AdminInventory = lazy(() => import("./pages/admin/Inventory"));
+const AdminDemo = lazy(() => import("./pages/AdminDemo"));
+const BlogList = lazy(() => import("./pages/blog/BlogList"));
+const BlogPost = lazy(() => import("./pages/blog/BlogPost"));
+
+// Eagerly import components that should be immediately available
 import ProtectedRoute from "./components/ProtectedRoute";
-import AdminLayout from "./pages/admin/Layout";
-import AdminDashboard from "./pages/admin/Dashboard";
-import AdminProducts from "./pages/admin/Products";
-import AdminOrders from "./pages/admin/Orders";
-import AdminCustomers from "./pages/admin/Customers";
-import AdminCoupons from "./pages/admin/Coupons";
-import AdminInventory from "./pages/admin/Inventory";
-import AdminDemo from "./pages/AdminDemo";
-import BlogList from "./pages/blog/BlogList";
-import BlogPost from "./pages/blog/BlogPost";
 import WhatsAppSupport from "./components/blog/WhatsAppSupport";
 
-const queryClient = new QueryClient();
+// Loading fallback component
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="flex flex-col items-center space-y-4">
+      <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <p className="text-muted-foreground">Carregando...</p>
+    </div>
+  </div>
+);
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -37,66 +61,68 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/produtos" element={<Products />} />
-              <Route path="/produto/:id" element={<ProductDetail />} />
-              <Route path="/carrinho" element={<Cart />} />
-              <Route path="/checkout" element={
-                <ProtectedRoute>
-                  <Checkout />
-                </ProtectedRoute>
-              } />
-              <Route path="/conta" element={
-                <ProtectedRoute>
-                  <AreaCliente />
-                </ProtectedRoute>
-              } />
-              <Route path="/account" element={
-                <ProtectedRoute>
-                  <AreaCliente />
-                </ProtectedRoute>
-              } />
-              <Route path="/account/orders" element={
-                <ProtectedRoute>
-                  <AreaCliente />
-                </ProtectedRoute>
-              } />
-              <Route path="/account/wishlist" element={
-                <ProtectedRoute>
-                  <AreaCliente />
-                </ProtectedRoute>
-              } />
-              <Route path="/account/addresses" element={
-                <ProtectedRoute>
-                  <AreaCliente />
-                </ProtectedRoute>
-              } />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/pets" element={<Products />} />
-              <Route path="/casa" element={<Products />} />
-              <Route path="/jardim" element={<Products />} />
-              <Route path="/personalizacao" element={<Products />} />
-              {/* Blog Routes */}
-              <Route path="/blog" element={<BlogList />} />
-              <Route path="/blog/:slug" element={<BlogPost />} />
-              {/* Admin Routes */}
-              <Route path="/admin" element={
-                <ProtectedRoute>
-                  <AdminLayout />
-                </ProtectedRoute>
-              }>
-                <Route index element={<AdminDashboard />} />
-                <Route path="products" element={<AdminProducts />} />
-                <Route path="orders" element={<AdminOrders />} />
-                <Route path="customers" element={<AdminCustomers />} />
-                <Route path="coupons" element={<AdminCoupons />} />
-                <Route path="inventory" element={<AdminInventory />} />
-              </Route>
-              <Route path="/admin-demo" element={<AdminDemo />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/produtos" element={<Products />} />
+                <Route path="/produto/:id" element={<ProductDetail />} />
+                <Route path="/carrinho" element={<Cart />} />
+                <Route path="/checkout" element={
+                  <ProtectedRoute>
+                    <Checkout />
+                  </ProtectedRoute>
+                } />
+                <Route path="/conta" element={
+                  <ProtectedRoute>
+                    <AreaCliente />
+                  </ProtectedRoute>
+                } />
+                <Route path="/account" element={
+                  <ProtectedRoute>
+                    <AreaCliente />
+                  </ProtectedRoute>
+                } />
+                <Route path="/account/orders" element={
+                  <ProtectedRoute>
+                    <AreaCliente />
+                  </ProtectedRoute>
+                } />
+                <Route path="/account/wishlist" element={
+                  <ProtectedRoute>
+                    <AreaCliente />
+                  </ProtectedRoute>
+                } />
+                <Route path="/account/addresses" element={
+                  <ProtectedRoute>
+                    <AreaCliente />
+                  </ProtectedRoute>
+                } />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/pets" element={<Products />} />
+                <Route path="/casa" element={<Products />} />
+                <Route path="/jardim" element={<Products />} />
+                <Route path="/personalizacao" element={<Products />} />
+                {/* Blog Routes */}
+                <Route path="/blog" element={<BlogList />} />
+                <Route path="/blog/:slug" element={<BlogPost />} />
+                {/* Admin Routes */}
+                <Route path="/admin" element={
+                  <ProtectedRoute>
+                    <AdminLayout />
+                  </ProtectedRoute>
+                }>
+                  <Route index element={<AdminDashboard />} />
+                  <Route path="products" element={<AdminProducts />} />
+                  <Route path="orders" element={<AdminOrders />} />
+                  <Route path="customers" element={<AdminCustomers />} />
+                  <Route path="coupons" element={<AdminCoupons />} />
+                  <Route path="inventory" element={<AdminInventory />} />
+                </Route>
+                <Route path="/admin-demo" element={<AdminDemo />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
           </BrowserRouter>
           
           {/* Global WhatsApp Support */}
