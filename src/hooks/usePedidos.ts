@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { Pedido, Endereco, StatusHistory, OrderFromDB, OrderStatusHistory, OrderItem } from '@/types/pedidos';
 
 export interface PedidoTracking {
   id: string;
@@ -21,14 +22,14 @@ export const usePedidos = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const statusLabels = {
+  const statusLabels = useMemo(() => ({
     pending: 'Pedido Confirmado',
     processing: 'Em Produção',
     quality_check: 'Controle de Qualidade',
     shipped: 'Enviado',
     delivered: 'Entregue',
     cancelled: 'Cancelado'
-  };
+  }), []);
 
   const getStatusProgress = (status: string): number => {
     const statusOrder = ['pending', 'processing', 'quality_check', 'shipped', 'delivered'];
@@ -36,7 +37,7 @@ export const usePedidos = () => {
     return currentIndex >= 0 ? ((currentIndex + 1) / statusOrder.length) * 100 : 0;
   };
 
-  const fetchPedidos = async () => {
+  const fetchPedidos = useCallback(async () => {
     if (!user) {
       setLoading(false);
       return;
@@ -72,7 +73,7 @@ export const usePedidos = () => {
       const pedidosFormatados = (orders || []).map(order => ({
         ...order,
         total_amount: order.total_amount || order.total || DEFAULT_ORDER_TOTAL, // Fallback para compatibilidade
-        status_history: order.order_status_history?.map((history: any) => ({
+        status_history: order.order_status_history?.map((history: OrderStatusHistory) => ({
           status: history.status,
           timestamp: history.created_at,
           description: history.description
@@ -92,11 +93,11 @@ export const usePedidos = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, statusLabels]);
 
   useEffect(() => {
     fetchPedidos();
-  }, [user]);
+  }, [fetchPedidos]);
 
   const updatePedidoStatus = async (pedidoId: string, newStatus: string) => {
     try {
@@ -167,7 +168,7 @@ export const usePedidos = () => {
         throw new Error('Nenhum item encontrado no pedido original');
       }
 
-      const productIds = items.map((item: any) => item.product_id);
+      const productIds = items.map((item: OrderItem) => item.product_id);
       const { data: produtos, error: produtoError } = await supabase
         .from('products')
         .select('id, name, price')
@@ -177,7 +178,7 @@ export const usePedidos = () => {
 
       // Calcular novo total com preços atuais
       let novoTotal = 0;
-      const novosItens = items.map((item: any) => {
+      const novosItens = items.map((item: OrderItem) => {
         const produto = produtos?.find(p => p.id === item.product_id);
         if (!produto) {
           throw new Error(`Produto ${item.product_id} não está mais disponível`);
@@ -218,7 +219,7 @@ export const usePedidos = () => {
     }
   };
 
-  const alterarEnderecoPedido = async (pedidoId: string, novoEndereco: any) => {
+  const alterarEnderecoPedido = async (pedidoId: string, novoEndereco: Endereco) => {
     try {
       // Verificar se o pedido pode ter endereço alterado
       const pedido = pedidos.find(p => p.id === pedidoId);

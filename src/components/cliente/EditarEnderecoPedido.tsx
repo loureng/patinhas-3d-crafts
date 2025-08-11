@@ -6,10 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { usePedidos } from '@/hooks/usePedidos';
+import { Endereco } from '@/types/pedidos';
 
 interface EditarEnderecoPedidoProps {
   pedidoId: string | null;
-  enderecoAtual: any;
+  enderecoAtual: Endereco | null;
   open: boolean;
   onClose: () => void;
 }

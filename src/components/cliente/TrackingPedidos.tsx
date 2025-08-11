@@ -22,13 +22,14 @@ import {
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import EditarEnderecoPedido from './EditarEnderecoPedido';
+import { Endereco } from '@/types/pedidos';
 
 const TrackingPedidos = () => {
   const { pedidos, loading, error, statusLabels, getStatusProgress, cancelarPedido, reordenarPedido } = usePedidos();
   const [cancelarDialogOpen, setCancelarDialogOpen] = useState(false);
   const [editarEnderecoOpen, setEditarEnderecoOpen] = useState(false);
   const [pedidoSelecionado, setPedidoSelecionado] = useState<string | null>(null);
-  const [enderecoAtual, setEnderecoAtual] = useState<any>(null);
+  const [enderecoAtual, setEnderecoAtual] = useState<Endereco | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const handleCancelarPedido = async () => {
