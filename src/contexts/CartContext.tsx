@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { useRecommendations } from '@/hooks/useRecommendations';
 
 export interface CartItem {
   id: string;
@@ -44,6 +45,7 @@ export const useCart = () => {
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>([]);
+  const { trackInteraction } = useRecommendations();
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -74,6 +76,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           title: "Item atualizado",
           description: `${newItem.name} quantidade atualizada no carrinho`
         });
+        
+        // Track add to cart interaction
+        trackInteraction({
+          product_id: newItem.id,
+          interaction_type: 'add_to_cart',
+          interaction_data: {
+            product_name: newItem.name,
+            price: newItem.price,
+            quantity: existingItem.quantity + 1,
+            customization: newItem.customization,
+            action: 'quantity_update'
+          }
+        });
+        
         return prevItems.map(item =>
           item === existingItem
             ? { ...item, quantity: item.quantity + 1 }
@@ -84,6 +100,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           title: "Item adicionado",
           description: `${newItem.name} foi adicionado ao carrinho`
         });
+        
+        // Track add to cart interaction
+        trackInteraction({
+          product_id: newItem.id,
+          interaction_type: 'add_to_cart',
+          interaction_data: {
+            product_name: newItem.name,
+            price: newItem.price,
+            quantity: 1,
+            customization: newItem.customization,
+            action: 'new_item'
+          }
+        });
+        
         return [...prevItems, { ...newItem, quantity: 1 }];
       }
     });
