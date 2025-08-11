@@ -201,7 +201,6 @@ export const usePedidos = () => {
           user_id: user?.id,
           items: novosItens,
           total_amount: novoTotal,
-          total: novoTotal, // Para compatibilidade
           status: 'pending',
           shipping_address: pedidoOriginal.shipping_address,
           payment_method: null // Usuário terá que escolher novamente
