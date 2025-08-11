@@ -28,10 +28,14 @@ const AdminInventory = lazy(() => import("./pages/admin/Inventory"));
 const AdminReports = lazy(() => import("./pages/admin/Reports"));
 const AdminDemo = lazy(() => import("./pages/AdminDemo"));
 
+const ShippingDemo = lazy(() => import("./pages/ShippingDemo"));
+
+
 const AdminCategories = lazy(() => import("./pages/admin/Categories"));
 const AdminSettings = lazy(() => import("./pages/admin/Settings"));
 
 const NotificationDemo = lazy(() => import("./pages/NotificationDemo"));
+
 
 const BlogList = lazy(() => import("./pages/blog/BlogList"));
 const BlogPost = lazy(() => import("./pages/blog/BlogPost"));
@@ -127,7 +131,11 @@ const App = () => (
                   <Route path="settings" element={<AdminSettings />} />
                 </Route>
                 <Route path="/admin-demo" element={<AdminDemo />} />
+
+                <Route path="/shipping-demo" element={<ShippingDemo />} />
+
                 <Route path="/notification-demo" element={<NotificationDemo />} />
+
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
