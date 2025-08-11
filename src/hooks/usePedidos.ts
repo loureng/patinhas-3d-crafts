@@ -71,7 +71,7 @@ export const usePedidos = () => {
 
       const pedidosFormatados = (orders || []).map(order => ({
         ...order,
-        total_amount: order.total_amount || order.total || 0, // Fallback para compatibilidade
+        total_amount: order.total_amount || order.total || DEFAULT_ORDER_TOTAL, // Fallback para compatibilidade
         status_history: order.order_status_history?.map((history: any) => ({
           status: history.status,
           timestamp: history.created_at,
