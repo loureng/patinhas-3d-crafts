@@ -11,8 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import { toast } from '@/hooks/use-toast';
 import { fetchCepData, validateAddress } from '@/services/cepAPI';
-import { calculateShipping, getProductWeight } from '@/services/shippingAPI';
-import { ShippingOption } from '@/types/shipping';
+import { calculateShipping, getWeightWithFallback } from '@/services/shippingAPI';
+import { ShippingOption, ORIGIN_CEP } from '@/types/shipping';
 import { Loader2 } from 'lucide-react';
 
 type Coupon = {
@@ -202,7 +202,7 @@ const Checkout = () => {
 
       // Prepare shipping calculation request
       const shippingItems = items.map(item => ({
-        weight: getProductWeight(item.weight), // Use product weight or default
+        weight: getWeightWithFallback(item.weight), // Use product weight or default
         quantity: item.quantity
       }));
 

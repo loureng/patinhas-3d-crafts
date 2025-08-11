@@ -7,6 +7,9 @@ import {
 } from '@/types/shipping';
 import { fetchCepData } from './cepAPI';
 
+// Constants
+const EARTH_RADIUS_KM = 6371;
+
 // Configurações de preço base para cada modalidade
 const SHIPPING_CONFIG = {
   [SHIPPING_CARRIERS.CORREIOS_PAC]: {
