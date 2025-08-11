@@ -356,7 +356,12 @@ export default function ProductionQueueAdmin() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4" />
-                        <span>{item.customer?.display_name || item.customer?.email || 'Cliente'}</span>
+                        <span>
+                          {item.customer
+                            ? item.customer.display_name || item.customer.email || 'Cliente'
+                            : <span className="italic text-muted-foreground">Cliente não disponível</span>
+                          }
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>
