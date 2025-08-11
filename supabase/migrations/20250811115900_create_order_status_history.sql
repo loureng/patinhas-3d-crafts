@@ -101,7 +101,11 @@ BEGIN
     AND table_schema = 'public'
   ) THEN
     ALTER TABLE public.orders ADD COLUMN total_amount DECIMAL(10,2);
-    -- Update existing orders that might have 'total' instead
-    UPDATE public.orders SET total_amount = total WHERE total_amount IS NULL AND total IS NOT NULL;
+    -- Update existing orders that might have 'total' instead, only if needed
+    IF EXISTS (
+      SELECT 1 FROM public.orders WHERE total_amount IS NULL AND total IS NOT NULL
+    ) THEN
+      UPDATE public.orders SET total_amount = total WHERE total_amount IS NULL AND total IS NOT NULL;
+    END IF;
   END IF;
 END $$;
