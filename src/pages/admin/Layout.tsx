@@ -10,7 +10,8 @@ import {
   Settings,
   LogOut,
   Menu,
-  Home
+  Home,
+  Tag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -46,6 +47,11 @@ const sidebarItems = [
     icon: Ticket,
   },
   {
+    title: "Categorias",
+    href: "/admin/categories",
+    icon: Tag,
+  },
+  {
     title: "Estoque",
     href: "/admin/inventory",
     icon: Warehouse,
@@ -75,8 +81,22 @@ export default function AdminLayout() {
         return;
       }
 
-      // Por enquanto, vamos considerar que qualquer usuário logado pode ser admin
-      // Em produção, você deveria verificar uma tabela admin_users ou campo role
+      // Implementação melhorada: verificar se o usuário tem permissões admin
+      // Por enquanto, aceitar qualquer usuário logado como admin para demo
+      // Em produção, verificar tabela admin_users ou campo role no profile
+      
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // Ignore "not found" error
+        console.error('Erro ao verificar perfil:', error);
+      }
+
+      // Por enquanto, qualquer usuário logado pode ser admin
+      // TODO: Implementar verificação real de permissões admin
       setIsAdmin(true);
       
     } catch (error) {
