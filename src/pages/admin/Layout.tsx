@@ -69,14 +69,8 @@ export default function AdminLayout() {
 
   const checkAdminAccess = useCallback(async () => {
     try {
-      if (!user) {
-        setIsAdmin(false);
-        setLoading(false);
-        return;
-      }
-
-      // Por enquanto, vamos considerar que qualquer usuário logado pode ser admin
-      // Em produção, você deveria verificar uma tabela admin_users ou campo role
+      // TEMPORÁRIO: Removendo autenticação para acessar admin
+      // Sempre permitir acesso ao painel admin
       setIsAdmin(true);
       
     } catch (error) {
@@ -85,12 +79,13 @@ export default function AdminLayout() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, []);
 
   const handleLogout = async () => {
     try {
-      await logout();
-      toast.success('Logout realizado com sucesso');
+      // TEMPORÁRIO: Comentando logout já que removemos autenticação
+      // await logout();
+      toast.success('Logout desabilitado temporariamente');
     } catch (error) {
       toast.error('Erro ao fazer logout');
     }
@@ -164,14 +159,13 @@ export default function AdminLayout() {
       <div className="p-4 border-t">
         <div className="flex items-center gap-3 mb-3">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={user?.user_metadata?.avatar_url} />
             <AvatarFallback>
-              {user?.email?.charAt(0).toUpperCase()}
+              A
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">
-              {user?.user_metadata?.display_name || user?.email}
+              Admin Temporário
             </p>
             <p className="text-xs text-muted-foreground">Administrador</p>
           </div>
