@@ -22,6 +22,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
+import RecommendationSection from "@/components/RecommendationSection";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Product {
   id: string;
@@ -216,6 +218,14 @@ const Products = () => {
             }
           </p>
         </div>
+
+        {/* Personalized Recommendations Section */}
+        <RecommendationSection
+          title="Recomendado para Você"
+          type="personalized"
+          limit={6}
+          className="mb-8"
+        />
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar Filters */}
