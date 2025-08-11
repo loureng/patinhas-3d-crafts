@@ -23,14 +23,14 @@ const EditarEnderecoPedido: React.FC<EditarEnderecoPedidoProps> = ({
   const { alterarEnderecoPedido } = usePedidos();
   const [loading, setLoading] = useState(false);
   const [endereco, setEndereco] = useState({
-    street: enderecoAtual?.street || '',
-    number: enderecoAtual?.number || '',
-    complement: enderecoAtual?.complement || '',
-    neighborhood: enderecoAtual?.neighborhood || '',
-    city: enderecoAtual?.city || '',
-    state: enderecoAtual?.state || '',
-    zipCode: enderecoAtual?.zipCode || '',
-    ...enderecoAtual
+    ...enderecoAtual,
+    street: enderecoAtual?.street ?? '',
+    number: enderecoAtual?.number ?? '',
+    complement: enderecoAtual?.complement ?? '',
+    neighborhood: enderecoAtual?.neighborhood ?? '',
+    city: enderecoAtual?.city ?? '',
+    state: enderecoAtual?.state ?? '',
+    zipCode: enderecoAtual?.zipCode ?? ''
   });
 
   const handleSave = async () => {
