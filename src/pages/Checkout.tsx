@@ -691,11 +691,24 @@ const Checkout = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Button type="button" variant="secondary" className="w-full" disabled>
-                      Pagamento em manutenção
+                    <Button 
+                      type="button" 
+                      onClick={handleMercadoPago}
+                      className="w-full" 
+                      size="lg"
+                      disabled={payLoading || !selectedShipping}
+                    >
+                      {payLoading ? (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Processando pagamento...
+                        </div>
+                      ) : (
+                        'Pagar com Mercado Pago'
+                      )}
                     </Button>
                     <p className="text-xs text-muted-foreground text-center">
-                      Temporariamente indisponível. Tente novamente mais tarde.
+                      PIX, Cartão de Crédito ou Boleto
                     </p>
                   </div>
                 </div>
