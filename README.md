@@ -10,14 +10,6 @@ Uma plataforma e-commerce moderna para produtos 3D personalizados voltados para 
 
 ## ✨ Funcionalidades
 
-- 🎨 **Visualização 3D Interativa**: Visualize produtos em tempo real com Three.js
-- 🐕 **Produtos para Pets**: Linha especializada em acessórios e decorações para animais
-- 🏡 **Casa & Jardim**: Decorações personalizadas para ambientes internos e externos
-- 🛒 **E-commerce Completo**: Sistema de carrinho, checkout e pagamentos
-- 📱 **Design Responsivo**: Interface otimizada para desktop, tablet e mobile
-- 🔐 **Autenticação Flexível**: Sistema de login e registro com Google OAuth + registro manual
-- 🎯 **Personalização**: Customize cores, tamanhos e detalhes dos produtos
-- 📦 **Gestão de Pedidos**: Acompanhe seus pedidos em tempo real
 
 ## 🚀 Tecnologias Utilizadas
 
