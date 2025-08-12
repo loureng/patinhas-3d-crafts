@@ -31,6 +31,7 @@ interface CartContextType {
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
+  restoreCart: (items: CartItem[]) => void;
   total: number;
   itemCount: number;
 }
@@ -206,6 +207,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  const restoreCart = (cartItems: CartItem[]) => {
+    setItems(cartItems);
+    toast({
+      title: "Carrinho restaurado",
+      description: "Seus itens foram restaurados para tentar o pagamento novamente"
+    });
+  };
+
   const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -216,6 +225,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       removeItem,
       updateQuantity,
       clearCart,
+      restoreCart,
       total,
       itemCount
     }}>

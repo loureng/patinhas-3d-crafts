@@ -61,50 +61,53 @@ serve(async (req: Request): Promise<Response> => {
         console.error("Failed to update order status", await res.text());
       }
 
-      // If approved, try sending confirmation email via Resend
+      // If approved, try sending confirmation email via new email service
       if (status === 'approved') {
         try {
-          // Fetch order with shipping email and totals
-          const orderRes = await fetch(`${supaUrl}/rest/v1/orders?select=*&id=eq.${external_reference}`, {
+          // Fetch order with user details and items
+          const orderRes = await fetch(`${supaUrl}/rest/v1/orders?select=*,profiles(display_name,email)&id=eq.${external_reference}`, {
             headers: { apikey: supaKey, Authorization: `Bearer ${supaKey}` },
           });
           const orderArr = await orderRes.json();
           const order = Array.isArray(orderArr) ? orderArr[0] : undefined;
 
-          // Fetch order items
-          const itemsRes = await fetch(`${supaUrl}/rest/v1/order_items?select=product_id,quantity,price&order_id=eq.${external_reference}`, {
+          // Fetch order items with product names
+          const itemsRes = await fetch(`${supaUrl}/rest/v1/order_items?select=*,products(name)&order_id=eq.${external_reference}`, {
             headers: { apikey: supaKey, Authorization: `Bearer ${supaKey}` },
           });
           const orderItems = await itemsRes.json();
 
-          const emailTo = order?.shipping_address?.email || undefined;
-          const totalAmount = order?.total_amount || 0;
-          const itemLines = (orderItems || []).map((it: any) => `• Produto ${it.product_id} — qtd ${it.quantity} — R$ ${Number(it.price).toFixed(2)}`).join("\n");
-          const bodyText = `Olá!\n\nRecebemos o seu pagamento e o pedido #${external_reference} foi aprovado.\n\nItens:\n${itemLines || 'Sem itens'}\n\nTotal: R$ ${Number(totalAmount).toFixed(2)}\n\nAcompanhe seus pedidos em nossa loja.`;
+          const customerEmail = order?.profiles?.email || order?.shipping_address?.email;
+          const customerName = order?.profiles?.display_name || order?.shipping_address?.name || 'Cliente';
+          
+          if (customerEmail) {
+            // Use the new send-email function
+            const emailData = {
+              to: customerEmail,
+              type: 'payment_approved',
+              data: {
+                order_id: external_reference,
+                customer_name: customerName,
+                total_amount: order?.total_amount || 0,
+                order_items: orderItems?.map((item: any) => ({
+                  product_name: item.products?.name || 'Produto',
+                  quantity: item.quantity,
+                  price: item.price
+                })) || []
+              }
+            };
 
-          const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
-          // Use um remetente de teste padrão do Resend se STORE_FROM_EMAIL não estiver configurado
-          // Você pode trocar por um domínio verificado depois (ex.: noreply@seu-dominio.com)
-          const FROM_EMAIL = Deno.env.get('STORE_FROM_EMAIL') || 'onboarding@resend.dev';
-          if (RESEND_API_KEY && emailTo) {
-            await fetch('https://api.resend.com/emails', {
+            await fetch(`${supaUrl.replace('.supabase.co', '.functions.supabase.co')}/send-email`, {
               method: 'POST',
               headers: {
-                Authorization: `Bearer ${RESEND_API_KEY}`,
+                'Authorization': `Bearer ${supaKey}`,
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({
-                from: `Jardim das Patinhas <${FROM_EMAIL}>`,
-                to: [emailTo],
-                subject: `Pedido aprovado #${external_reference}`,
-                text: bodyText,
-              }),
+              body: JSON.stringify(emailData)
             });
-          } else {
-            console.warn('Skipping email: missing RESEND_API_KEY or recipient email');
           }
         } catch (mailErr) {
-          console.error('Error sending confirmation email:', mailErr);
+          console.error('Error sending payment confirmation email:', mailErr);
         }
       }
     }
