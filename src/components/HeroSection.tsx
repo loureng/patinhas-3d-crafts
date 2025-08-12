@@ -22,7 +22,7 @@ const HeroSection = () => {
               
               <h1 className="text-4xl md:text-6xl font-bold leading-tight">
                 <span className="text-foreground">Jardim das</span>{" "}
-                <span className="bg-gradient-primary bg-clip-text text-transparent">
+                <span className="text-primary font-extrabold">
                   Patinhas
                 </span>
               </h1>

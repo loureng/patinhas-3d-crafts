@@ -4,7 +4,6 @@ import HeroSection from "@/components/HeroSection";
 import CategoriesSection from "@/components/CategoriesSection";
 import FeaturedProducts from "@/components/FeaturedProducts";
 import HowItWorks from "@/components/HowItWorks";
-import ProductionLoggerTest from "@/components/ProductionLoggerTest";
 
 const Index = () => {
   return (
@@ -12,11 +11,6 @@ const Index = () => {
       <Header />
       <main>
         <HeroSection />
-        {import.meta.env.DEV && (
-          <div className="container mx-auto px-4 py-8">
-            <ProductionLoggerTest />
-          </div>
-        )}
         <CategoriesSection />
         <FeaturedProducts />
         <HowItWorks />

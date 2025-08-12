@@ -18,26 +18,21 @@ All colors MUST be HSL.
     --popover-foreground: 0 0% 13%;
 
     /* Jardim das Patinhas Brand Colors */
-    --primary: 30 100% 50%; /* Orange #FF9800 */
+    --primary: 36 100% 50%; /* Orange #FF9800 */
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 35 100% 65%; /* Lighter orange for hover */
+    --primary-glow: 36 100% 65%; /* Lighter orange for hover */
 
-    --secondary: 104 51% 45%; /* Green #4CAF50 */
+    --secondary: 122 39% 49%; /* Green #4CAF50 */
     --secondary-foreground: 0 0% 100%;
-    --secondary-glow: 104 51% 55%;
+    --secondary-glow: 122 39% 59%;
 
     --muted: 0 0% 96%;
     --muted-foreground: 0 0% 45%;
 
     --accent: 27 100% 50%; /* Orange accent */
-    --primary: 36 100% 50%; /* Orange #FF9800 */
-
-    --primary-glow: 36 100% 65%; /* Lighter orange for hover */
     --destructive-foreground: 0 0% 98%;
-    --secondary: 122 39% 49%; /* Green #4CAF50 */
     --border: 0 0% 90%;
-    --secondary-glow: 122 39% 59%;
-    --ring: 27 100% 50%;
+    --ring: 36 100% 50%;
 
     --radius: 0.75rem;
 
