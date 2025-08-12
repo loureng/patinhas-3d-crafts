@@ -41,11 +41,17 @@ export class NotificationService {
     const { data, error } = await query;
     
     if (error) {
+      // Se a tabela notifications não existir, retornar array vazio silenciosamente
+      if (error.code === 'PGRST205' && error.message?.includes('notifications')) {
+        console.warn('📊 Tabela notifications não encontrada - funcionalidade desabilitada temporariamente');
+        return [];
+      }
+      
       console.error('Error fetching notifications:', error);
       throw error;
     }
 
-    return data || [];
+    return (data || []) as Notification[];
   }
 
   // Get notification statistics
@@ -55,6 +61,22 @@ export class NotificationService {
       .select('type, read_at');
 
     if (error) {
+      // Se a tabela notifications não existir, retornar stats zeradas
+      if (error.code === 'PGRST205' && error.message?.includes('notifications')) {
+        console.warn('📊 Tabela notifications não encontrada - stats zeradas');
+        return { 
+          total: 0, 
+          unread: 0, 
+          byType: {
+            ORDER_STATUS_CHANGED: 0,
+            NEW_ORDER: 0,
+            PROMOTION: 0,
+            NEWS: 0,
+            SYSTEM_UPDATE: 0
+          }
+        };
+      }
+      
       console.error('Error fetching notification stats:', error);
       throw error;
     }
@@ -125,7 +147,7 @@ export class NotificationService {
       throw error;
     }
 
-    return notification;
+    return notification as Notification;
   }
 
   // Get user notification preferences
@@ -201,7 +223,7 @@ export class NotificationService {
       throw error;
     }
 
-    return data || [];
+    return (data || []) as NotificationTemplate[];
   }
 
   // Process template with variables

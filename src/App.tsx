@@ -52,6 +52,7 @@ const BlogPost = lazy(() => import("./pages/blog/BlogPost"));
 // Eagerly import components that should be immediately available
 import ProtectedRoute from "./components/ProtectedRoute";
 import WhatsAppSupport from "./components/blog/WhatsAppSupport";
+import DebugLogger from "./components/DebugLogger";
 
 // Loading fallback component
 const PageLoader = () => (
@@ -165,6 +166,12 @@ const App = () => (
           <WhatsAppSupport 
             phoneNumber="5511999999999" 
             businessName="Jardim das Patinhas"
+          />
+          
+          {/* Debug Logger - Ativado apenas em desenvolvimento */}
+          <DebugLogger 
+            enabled={import.meta.env.DEV || window.location.search.includes('debug=true')}
+            showConsole={import.meta.env.DEV}
           />
           </CartProvider>
         </NotificationProvider>

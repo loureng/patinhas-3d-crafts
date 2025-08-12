@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { useRecommendations } from '@/hooks/useRecommendations';
+import productionLogger from '@/utils/productionLogger';
 
 export interface CartItem {
   id: string;
@@ -122,14 +123,54 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const removeItem = (id: string) => {
     setItems(prevItems => {
-      const item = prevItems.find(item => item.id === id);
-      if (item) {
-        toast({
-          title: "Item removido",
-          description: `${item.name} foi removido do carrinho`
+      console.log('🗑️ TENTANDO REMOVER ITEM:', { 
+        requestedId: id, 
+        availableIds: prevItems.map(item => ({ 
+          id: item.id, 
+          fullId: `${item.id}-${JSON.stringify(item.customization)}`,
+          name: item.name 
+        })) 
+      });
+      
+      // Buscar por ID completo (incluindo customização)
+      const itemIndex = prevItems.findIndex(item => 
+        `${item.id}-${JSON.stringify(item.customization)}` === id
+      );
+      
+      if (itemIndex === -1) {
+        console.error('❌ ERRO: Item não encontrado para remoção!', {
+          requestedId: id,
+          availableItems: prevItems.map(item => `${item.id}-${JSON.stringify(item.customization)}`)
         });
+        
+        // 🚨 LOG PARA PRODUÇÃO - FUNCIONALIDADE FALHOU
+        productionLogger.logFunctionFail('removeItem', new Error('Item não encontrado'), {
+          requestedId: id,
+          availableItems: prevItems.length,
+          cartState: prevItems.map(item => ({
+            id: item.id,
+            name: item.name,
+            hasCustomization: !!item.customization
+          }))
+        });
+        
+        toast({
+          title: "Erro ao remover item",
+          description: "Item não encontrado no carrinho",
+          variant: "destructive"
+        });
+        return prevItems;
       }
-      return prevItems.filter(item => item.id !== id);
+      
+      const item = prevItems[itemIndex];
+      console.log('✅ REMOVENDO ITEM:', { id, name: item.name });
+      
+      toast({
+        title: "Item removido",
+        description: `${item.name} foi removido do carrinho`
+      });
+      
+      return prevItems.filter((_, index) => index !== itemIndex);
     });
   };
 
@@ -139,11 +180,22 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    setItems(prevItems =>
-      prevItems.map(item =>
-        item.id === id ? { ...item, quantity } : item
-      )
-    );
+    setItems(prevItems => {
+      console.log('🔄 ATUALIZANDO QUANTIDADE:', { 
+        requestedId: id, 
+        newQuantity: quantity,
+        availableIds: prevItems.map(item => `${item.id}-${JSON.stringify(item.customization)}`)
+      });
+      
+      return prevItems.map(item => {
+        const itemFullId = `${item.id}-${JSON.stringify(item.customization)}`;
+        if (itemFullId === id) {
+          console.log('✅ QUANTIDADE ATUALIZADA:', { itemName: item.name, oldQty: item.quantity, newQty: quantity });
+          return { ...item, quantity };
+        }
+        return item;
+      });
+    });
   };
 
   const clearCart = () => {
