@@ -20,6 +20,10 @@ const Account = lazy(() => import("./pages/Account"));
 const AreaCliente = lazy(() => import("./pages/AreaCliente"));
 const Auth = lazy(() => import("./pages/Auth"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
+const PaymentPending = lazy(() => import("./pages/PaymentPending"));
+const PaymentFailure = lazy(() => import("./pages/PaymentFailure"));
+const OrderTracking = lazy(() => import("./pages/OrderTracking"));
 const AdminLayout = lazy(() => import("./pages/admin/Layout"));
 const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
 const AdminProducts = lazy(() => import("./pages/admin/Products"));
@@ -128,6 +132,13 @@ const App = () => (
                 <Route path="/casa" element={<Products />} />
                 <Route path="/jardim" element={<Products />} />
                 <Route path="/personalizacao" element={<Personalizacao />} />
+                {/* Payment Routes */}
+                <Route path="/payment/success" element={<PaymentSuccess />} />
+                <Route path="/payment/pending" element={<PaymentPending />} />
+                <Route path="/payment/failure" element={<PaymentFailure />} />
+                {/* Order Tracking */}
+                <Route path="/tracking" element={<OrderTracking />} />
+                <Route path="/rastreamento" element={<OrderTracking />} />
                 {/* Blog Routes */}
                 <Route path="/blog" element={<BlogList />} />
                 <Route path="/blog/:slug" element={<BlogPost />} />

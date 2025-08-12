@@ -405,14 +405,14 @@ const Checkout = () => {
         currency_id: 'BRL',
       }));
 
-      const backUrl = `${window.location.origin}/account/orders`;
+      const baseUrl = window.location.origin;
       const { data, error } = await supabase.functions.invoke('create-payment-preference', {
         body: {
           items: mpItems,
           back_urls: {
-            success: backUrl,
-            failure: backUrl,
-            pending: backUrl,
+            success: `${baseUrl}/payment/success`,
+            failure: `${baseUrl}/payment/failure`,
+            pending: `${baseUrl}/payment/pending`,
           },
           auto_return: 'approved',
           external_reference: order.id,
