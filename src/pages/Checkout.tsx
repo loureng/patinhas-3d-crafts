@@ -406,7 +406,7 @@ const Checkout = () => {
       }));
 
       const backUrl = `${window.location.origin}/account/orders`;
-  const { data, error } = await supabase.functions.invoke('create-payment-preference', {
+      const { data, error } = await supabase.functions.invoke('create-payment-preference', {
         body: {
           items: mpItems,
           back_urls: {
@@ -421,20 +421,44 @@ const Checkout = () => {
 
       if (error) {
         console.error('MP error:', error);
-        toast({ title: 'Erro ao iniciar pagamento', description: 'Tente novamente.', variant: 'destructive' });
+        toast({ 
+          title: 'Erro ao iniciar pagamento', 
+          description: `Erro na integração: ${error.message || 'Tente novamente.'}`, 
+          variant: 'destructive' 
+        });
         return;
       }
 
-  const pref = (data as MpPreferenceResponse) || {};
-  const redirectUrl = pref.init_point || pref.sandbox_init_point;
+      const pref = (data as MpPreferenceResponse) || {};
+      const redirectUrl = pref.init_point || pref.sandbox_init_point;
       if (redirectUrl) {
-        window.location.href = redirectUrl;
+        // Show success feedback before redirecting
+        toast({ 
+          title: 'Redirecionando para pagamento...', 
+          description: 'Você será redirecionado para o Mercado Pago em instantes.' 
+        });
+        
+        // Small delay to show the toast
+        setTimeout(() => {
+          window.location.href = redirectUrl;
+        }, 1500);
       } else {
         toast({ title: 'Erro ao iniciar pagamento', description: 'URL de pagamento não retornada.', variant: 'destructive' });
       }
     } catch (err) {
       console.error('Mercado Pago error:', err);
-      toast({ title: 'Erro ao iniciar pagamento', description: 'Tente novamente mais tarde.', variant: 'destructive' });
+      
+      // Better error messaging for development
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      const isDevelopment = window.location.hostname === 'localhost';
+      
+      toast({ 
+        title: 'Erro ao iniciar pagamento', 
+        description: isDevelopment 
+          ? `[DEV] ${errorMessage} - Verifique configuração do Supabase`
+          : 'Tente novamente mais tarde.', 
+        variant: 'destructive' 
+      });
     } finally {
       setPayLoading(false);
     }
@@ -691,11 +715,24 @@ const Checkout = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Button type="button" variant="secondary" className="w-full" disabled>
-                      Pagamento em manutenção
+                    <Button 
+                      type="button" 
+                      onClick={handleMercadoPago}
+                      className="w-full" 
+                      size="lg"
+                      disabled={payLoading || !selectedShipping}
+                    >
+                      {payLoading ? (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Processando pagamento...
+                        </div>
+                      ) : (
+                        'Pagar com Mercado Pago'
+                      )}
                     </Button>
                     <p className="text-xs text-muted-foreground text-center">
-                      Temporariamente indisponível. Tente novamente mais tarde.
+                      PIX, Cartão de Crédito ou Boleto
                     </p>
                   </div>
                 </div>

@@ -94,12 +94,52 @@ export default function AdminDashboard() {
       // Dados de vendas por mês (últimos 6 meses)
       const salesByMonth = calculateSalesByMonth(orders);
       
-      // Top produtos (simulado - em produção seria baseado em order_items)
-      const topProductsData = products.slice(0, 5).map(product => ({
-        name: product.name,
-        sales: Math.floor(Math.random() * 100) + 10,
-        revenue: product.price * (Math.floor(Math.random() * 100) + 10)
-      }));
+      // Top produtos baseado em vendas reais
+      const { data: orderItems } = await supabase
+        .from('order_items')
+        .select(`
+          product_id,
+          quantity,
+          price,
+          products!inner(name)
+        `);
+
+      // Calcular vendas por produto
+      const productSales: Record<string, { name: string; quantity: number; revenue: number }> = {};
+      
+      if (orderItems) {
+        orderItems.forEach(item => {
+          const productId = item.product_id;
+          if (!productSales[productId]) {
+            productSales[productId] = {
+              name: item.products?.name || 'Produto Desconhecido',
+              quantity: 0,
+              revenue: 0
+            };
+          }
+          productSales[productId].quantity += item.quantity;
+          productSales[productId].revenue += (item.price || 0) * item.quantity;
+        });
+      }
+
+      // Ordenar por quantidade vendida e pegar top 5
+      const topProductsData = Object.values(productSales)
+        .sort((a, b) => b.quantity - a.quantity)
+        .slice(0, 5)
+        .map(product => ({
+          name: product.name,
+          sales: product.quantity,
+          revenue: product.revenue
+        }));
+
+      // Se não houver dados de vendas, usar produtos como fallback
+      const finalTopProducts = topProductsData.length > 0 
+        ? topProductsData 
+        : products.slice(0, 5).map(product => ({
+            name: product.name,
+            sales: 0,
+            revenue: 0
+          }));
 
       // Status dos pedidos
       const statusCounts = orders.reduce((acc, order) => {
@@ -121,6 +161,34 @@ export default function AdminDashboard() {
         color: statusColors[status as keyof typeof statusColors] || '#6b7280'
       }));
 
+      // Calcular crescimento real comparando mês atual com anterior
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+      const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+      const currentMonthOrders = orders.filter(order => {
+        const orderDate = new Date(order.created_at);
+        return orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear;
+      });
+
+      const lastMonthOrders = orders.filter(order => {
+        const orderDate = new Date(order.created_at);
+        return orderDate.getMonth() === lastMonth && orderDate.getFullYear() === lastMonthYear;
+      });
+
+      const currentMonthRevenue = currentMonthOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+      const lastMonthRevenue = lastMonthOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+
+      const revenueGrowth = lastMonthRevenue > 0 
+        ? ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 
+        : 0;
+      
+      const ordersGrowth = lastMonthOrders.length > 0 
+        ? ((currentMonthOrders.length - lastMonthOrders.length) / lastMonthOrders.length) * 100 
+        : 0;
+
       // Produtos com estoque baixo
       const lowStock = products.filter(product => product.stock && product.stock < 10);
 
@@ -129,12 +197,12 @@ export default function AdminDashboard() {
         totalOrders,
         totalProducts,
         totalCustomers,
-        revenueGrowth: Math.random() * 20 + 5, // Simulado
-        ordersGrowth: Math.random() * 15 + 2    // Simulado
+        revenueGrowth,
+        ordersGrowth
       });
 
       setSalesData(salesByMonth);
-      setTopProducts(topProductsData);
+      setTopProducts(finalTopProducts);
       setOrderStatus(orderStatusData);
       setLowStockProducts(lowStock);
 
@@ -151,11 +219,32 @@ export default function AdminDashboard() {
   }, [loadDashboardData]);
 
   const calculateSalesByMonth = (orders: Order[]) => {
-    const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'];
-    return months.map(month => ({
+    const now = new Date();
+    const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const salesByMonth: Record<string, { revenue: number; orders: number }> = {};
+    
+    // Initialize last 6 months with zero values
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthKey = months[date.getMonth()];
+      salesByMonth[monthKey] = { revenue: 0, orders: 0 };
+    }
+    
+    // Calculate actual sales from orders
+    orders.forEach(order => {
+      const orderDate = new Date(order.created_at);
+      const monthKey = months[orderDate.getMonth()];
+      
+      if (salesByMonth[monthKey]) {
+        salesByMonth[monthKey].revenue += order.total_amount || 0;
+        salesByMonth[monthKey].orders += 1;
+      }
+    });
+    
+    return Object.entries(salesByMonth).map(([month, data]) => ({
       month,
-      revenue: Math.floor(Math.random() * 10000) + 5000,
-      orders: Math.floor(Math.random() * 50) + 20
+      revenue: data.revenue,
+      orders: data.orders
     }));
   };
 
