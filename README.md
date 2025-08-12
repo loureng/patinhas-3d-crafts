@@ -15,7 +15,7 @@ Uma plataforma e-commerce moderna para produtos 3D personalizados voltados para 
 - 🏡 **Casa & Jardim**: Decorações personalizadas para ambientes internos e externos
 - 🛒 **E-commerce Completo**: Sistema de carrinho, checkout e pagamentos
 - 📱 **Design Responsivo**: Interface otimizada para desktop, tablet e mobile
-- 🔐 **Autenticação Segura**: Sistema de login e registro com Supabase
+- 🔐 **Autenticação Flexível**: Sistema de login e registro com Google OAuth + registro manual
 - 🎯 **Personalização**: Customize cores, tamanhos e detalhes dos produtos
 - 📦 **Gestão de Pedidos**: Acompanhe seus pedidos em tempo real
 
@@ -34,6 +34,7 @@ Uma plataforma e-commerce moderna para produtos 3D personalizados voltados para 
 
 ### Backend & Dados
 - **Supabase 2.53.0** - Backend as a Service (BaaS)
+- **Supabase Auth** - Autenticação com Google OAuth + registro manual email/senha
 - **React Query** - Gerenciamento de estado servidor
 - **React Hook Form** - Formulários performáticos
 - **Zod** - Validação de esquemas TypeScript
@@ -105,6 +106,30 @@ src/
 2. Configure as tabelas necessárias (produtos, usuários, pedidos)
 3. Adicione as credenciais ao arquivo `.env.local`
 4. Execute as migrações do banco de dados
+
+## 🔐 Sistema de Autenticação
+
+O projeto oferece múltiplas opções de autenticação para maior flexibilidade:
+
+### Registro Manual
+- **Email e senha**: Usuários podem criar contas fornecendo nome, email e senha
+- **Validações**: Email válido, senha mínima de 6 caracteres, nome obrigatório
+- **Feedback**: Mensagens específicas para diferentes cenários (email já existe, senha fraca, etc.)
+
+### Login Google OAuth
+- **Integração Google**: Login rápido com conta Google existente
+- **Configuração**: Requer setup no Google Console e Supabase Auth
+
+### Recursos de Segurança
+- **Validação frontend**: Utilizando Zod + React Hook Form
+- **Tratamento de erros**: Feedback específico via toast notifications
+- **Coexistência**: Ambos os métodos funcionam independentemente
+- **Responsividade**: Interface adaptada para todos os dispositivos
+
+### Interface de Autenticação
+- **Tabs intuitivas**: Alternância fácil entre Login e Registro
+- **UX moderna**: Loading states, toggle de senha, validações em tempo real
+- **Acessibilidade**: Componentes compatíveis com leitores de tela
 
 ## 🔧 Scripts Disponíveis
 
