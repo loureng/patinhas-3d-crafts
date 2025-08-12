@@ -1,6 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
 
 const CategoriesSection = () => {
   const categories = [
@@ -47,6 +48,7 @@ const CategoriesSection = () => {
     },
   ];
 
+  const navigate = useNavigate();
   return (
     <section className="py-16 bg-muted/30">
       <div className="container mx-auto px-4">
@@ -133,6 +135,7 @@ const CategoriesSection = () => {
             <Button 
               variant="secondary" 
               className="bg-white text-primary hover:bg-white/90"
+              onClick={() => navigate('/personalizacao')}
             >
               Personalizar
               <ArrowRight className="ml-2 h-4 w-4" />
