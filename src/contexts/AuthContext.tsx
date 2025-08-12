@@ -9,6 +9,8 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  signUp: (email: string, password: string, fullName: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -126,6 +128,138 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const signUp = async (email: string, password: string, fullName: string) => {
+    try {
+      console.log('🔐 Iniciando registro com email/senha...');
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            display_name: fullName
+          }
+        }
+      });
+
+      if (error) {
+        console.error('❌ Erro no registro:', error);
+        
+        // Tratamento específico de erros de registro
+        if (error.message.includes('User already registered')) {
+          toast({
+            title: "Email já cadastrado",
+            description: "Este email já possui uma conta. Tente fazer login ou use a recuperação de senha.",
+            variant: "destructive"
+          });
+        } else if (error.message.includes('Invalid email')) {
+          toast({
+            title: "Email inválido",
+            description: "Por favor, verifique o formato do email informado.",
+            variant: "destructive"
+          });
+        } else if (error.message.includes('Password')) {
+          toast({
+            title: "Senha inválida",
+            description: "A senha deve ter pelo menos 6 caracteres.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Erro no cadastro",
+            description: error.message || 'Falha ao criar conta',
+            variant: "destructive"
+          });
+        }
+        return;
+      }
+
+      console.log('✅ Registro realizado com sucesso:', data.user?.email);
+      
+      // Verificar se o usuário precisa confirmar email
+      if (data.user && !data.session) {
+        toast({
+          title: "Confirme seu email",
+          description: "Um link de confirmação foi enviado para seu email. Verifique sua caixa de entrada.",
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "Conta criada com sucesso!",
+          description: "Bem-vindo ao Jardim das Patinhas!",
+          variant: "default"
+        });
+      }
+    } catch (error: unknown) {
+      console.error('💥 Erro inesperado no registro:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast({
+        title: "Erro inesperado",
+        description: `Falha ao criar conta: ${errorMessage}`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const signIn = async (email: string, password: string) => {
+    try {
+      console.log('🔐 Iniciando login com email/senha...');
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        console.error('❌ Erro no login:', error);
+        
+        // Tratamento específico de erros de login
+        if (error.message.includes('Invalid login credentials')) {
+          toast({
+            title: "Credenciais inválidas",
+            description: "Email ou senha incorretos. Verifique suas informações e tente novamente.",
+            variant: "destructive"
+          });
+        } else if (error.message.includes('Email not confirmed')) {
+          toast({
+            title: "Email não confirmado",
+            description: "Verifique sua caixa de entrada e clique no link de confirmação antes de fazer login.",
+            variant: "destructive"
+          });
+        } else if (error.message.includes('Too many requests')) {
+          toast({
+            title: "Muitas tentativas",
+            description: "Aguarde alguns minutos antes de tentar novamente.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Erro no login",
+            description: error.message || 'Falha na autenticação',
+            variant: "destructive"
+          });
+        }
+        return;
+      }
+
+      console.log('✅ Login realizado com sucesso:', data.user?.email);
+      toast({
+        title: "Login realizado!",
+        description: "Bem-vindo de volta!",
+        variant: "default"
+      });
+    } catch (error: unknown) {
+      console.error('💥 Erro inesperado no login:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast({
+        title: "Erro inesperado",
+        description: `Falha na autenticação: ${errorMessage}`,
+        variant: "destructive"
+      });
+    }
+  };
+
   const signOut = async () => {
     try {
       console.log('🚪 Iniciando logout...');
@@ -157,7 +291,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       session,
       loading,
       signOut,
-      signInWithGoogle
+      signInWithGoogle,
+      signUp,
+      signIn
     }}>
       {children}
     </AuthContext.Provider>
