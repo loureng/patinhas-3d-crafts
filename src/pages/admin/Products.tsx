@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
+import ImageUpload from "@/components/ImageUpload";
 
 type Product = Tables<"products">;
 
@@ -24,6 +25,12 @@ interface ProductFormData {
   stock: number;
   image_url: string;
   customizable: boolean;
+}
+
+interface ProductImageState {
+  file: File | null;
+  preview: string | null;
+  uploading: boolean;
 }
 
 const categories = [
@@ -46,6 +53,11 @@ export default function AdminProducts() {
     stock: 0,
     image_url: "",
     customizable: false
+  });
+  const [imageState, setImageState] = useState<ProductImageState>({
+    file: null,
+    preview: null,
+    uploading: false
   });
 
   useEffect(() => {
@@ -70,11 +82,48 @@ export default function AdminProducts() {
     }
   };
 
+  const uploadImageToSupabase = async (file: File): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `product-images/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('product-images')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    // Get public URL
+    const { data } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  };
+
   const handleSaveProduct = async () => {
     try {
       if (!formData.name || !formData.category || formData.price <= 0) {
         toast.error('Por favor, preencha todos os campos obrigatórios');
         return;
+      }
+
+      let imageUrl = formData.image_url;
+
+      // Upload new image if selected
+      if (imageState.file) {
+        setImageState(prev => ({ ...prev, uploading: true }));
+        try {
+          imageUrl = await uploadImageToSupabase(imageState.file);
+        } catch (error) {
+          console.error('Erro ao fazer upload da imagem:', error);
+          toast.error('Erro ao fazer upload da imagem');
+          return;
+        } finally {
+          setImageState(prev => ({ ...prev, uploading: false }));
+        }
       }
 
       if (selectedProduct) {
@@ -87,7 +136,7 @@ export default function AdminProducts() {
             price: formData.price,
             category: formData.category,
             stock: formData.stock,
-            image_url: formData.image_url,
+            image_url: imageUrl,
             customizable: formData.customizable,
             updated_at: new Date().toISOString()
           })
@@ -105,7 +154,7 @@ export default function AdminProducts() {
             price: formData.price,
             category: formData.category,
             stock: formData.stock,
-            image_url: formData.image_url,
+            image_url: imageUrl,
             customizable: formData.customizable
           }]);
 
@@ -153,7 +202,29 @@ export default function AdminProducts() {
       image_url: "",
       customizable: false
     });
+    setImageState({
+      file: null,
+      preview: null,
+      uploading: false
+    });
     setSelectedProduct(null);
+  };
+
+  const handleImageSelect = (file: File) => {
+    const preview = URL.createObjectURL(file);
+    setImageState({
+      file,
+      preview,
+      uploading: false
+    });
+  };
+
+  const handleImageRemove = () => {
+    setImageState({
+      file: null,
+      preview: null,
+      uploading: false
+    });
   };
 
   const openEditDialog = (product?: Product) => {
@@ -167,6 +238,12 @@ export default function AdminProducts() {
         stock: product.stock || 0,
         image_url: product.image_url || "",
         customizable: product.customizable || false
+      });
+      // Set existing image preview
+      setImageState({
+        file: null,
+        preview: product.image_url || null,
+        uploading: false
       });
     } else {
       resetForm();
@@ -436,13 +513,20 @@ export default function AdminProducts() {
             </div>
 
             <div>
-              <Label htmlFor="image_url">URL da Imagem</Label>
-              <Input
-                id="image_url"
-                value={formData.image_url}
-                onChange={(e) => setFormData(prev => ({ ...prev, image_url: e.target.value }))}
-                placeholder="https://exemplo.com/imagem.jpg"
+              <Label>Imagem do Produto</Label>
+              <ImageUpload
+                onImageSelect={handleImageSelect}
+                onImageRemove={handleImageRemove}
+                uploadedImage={imageState.file}
+                imagePreview={imageState.preview}
+                disabled={imageState.uploading}
+                className="mt-2"
               />
+              {imageState.uploading && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Fazendo upload da imagem...
+                </p>
+              )}
             </div>
 
             <div className="flex items-center space-x-2">

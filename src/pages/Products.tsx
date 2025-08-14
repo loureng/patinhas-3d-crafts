@@ -57,6 +57,28 @@ const Products = () => {
 
   useEffect(() => {
     fetchProducts();
+
+    // Set up real-time subscription for products
+    const subscription = supabase
+      .channel('products-page-changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'products' 
+        }, 
+        (payload) => {
+          console.log('Produto atualizado na página de produtos:', payload);
+          // Refetch products when any change occurs
+          fetchProducts();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const filterAndSortProducts = useCallback(() => {
