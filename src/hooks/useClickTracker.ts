@@ -169,12 +169,29 @@ export const useClickTracker = (options: ClickTrackerOptions = {}) => {
   };
 };
 
+// Método utilitário para garantir que className sempre seja tratado como string
+// Evita erros do tipo "className.includes is not a function" em elementos SVG ou outros tipos
+function getSafeClassName(element: Element): string {
+  // Verificar se className existe e é uma string
+  if (typeof element.className === 'string') {
+    return element.className;
+  }
+  
+  // Para elementos SVG, className pode ser um SVGAnimatedString
+  if (element.className && typeof element.className === 'object' && 'baseVal' in element.className) {
+    return (element.className as SVGAnimatedString).baseVal || '';
+  }
+  
+  // Fallback: retornar string vazia se className não existir ou não for string
+  return '';
+}
+
 // Função para obter informações detalhadas do elemento
 function getElementInfo(element: HTMLElement) {
   return {
     tagName: element.tagName,
     id: element.id,
-    className: element.className,
+    className: getSafeClassName(element), // Usar getSafeClassName para robustez
     textContent: element.textContent?.substring(0, 100),
     attributes: getElementAttributes(element),
     xpath: getXPath(element),
@@ -204,8 +221,10 @@ function getXPath(element: HTMLElement): string {
   while (current && current.nodeType === Node.ELEMENT_NODE) {
     let selector = current.nodeName.toLowerCase();
     
-    if (current.className) {
-      selector += `[@class="${current.className}"]`;
+    // Usar getSafeClassName para evitar quebras em objetos SVG ou outros tipos
+    const className = getSafeClassName(current);
+    if (className) {
+      selector += `[@class="${className}"]`;
     }
     
     parts.unshift(selector);
@@ -227,8 +246,10 @@ function getCSSSelector(element: HTMLElement): string {
   while (current && current !== document.body) {
     let selector = current.nodeName.toLowerCase();
     
-    if (current.className) {
-      selector += '.' + current.className.split(' ').join('.');
+    // Usar getSafeClassName para evitar quebras em objetos SVG ou outros tipos
+    const className = getSafeClassName(current);
+    if (className) {
+      selector += '.' + className.split(' ').join('.');
     }
     
     parts.unshift(selector);

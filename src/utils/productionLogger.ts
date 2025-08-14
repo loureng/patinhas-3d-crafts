@@ -7,7 +7,7 @@
 interface ProductionLogEvent {
   id: string;
   timestamp: string;
-  type: 'error' | 'dead_click' | 'function_fail' | 'api_fail' | 'ui_fail';
+  type: 'error' | 'dead_click' | 'function_fail' | 'api_fail' | 'ui_fail' | 'javascript_error';
   severity: 'low' | 'medium' | 'high' | 'critical';
   message: string;
   context: {
@@ -115,7 +115,8 @@ class ProductionLogger {
     const tag = element.tagName.toLowerCase();
     const role = element.getAttribute('role');
     const type = element.getAttribute('type');
-    const className = element.className;
+    // Usar getSafeClassName para evitar erros de "className.includes is not a function"
+    const className = this.getSafeClassName(element);
     const text = element.textContent?.trim() || '';
     
     // BOTÕES
@@ -147,12 +148,15 @@ class ProductionLogger {
       return 'navigation';
     }
     
-    // INPUTS
+    // INPUTS - Tratar file upload especificamente para evitar dead click falso
     if (tag === 'input' || tag === 'select' || tag === 'textarea') {
+      if (type === 'file') {
+        return 'file_upload'; // Considerado respondido automaticamente
+      }
       return 'form_interaction';
     }
     
-    // ELEMENTOS CLICÁVEIS
+    // ELEMENTOS CLICÁVEIS - Usar getSafeClassName para robustez
     if (element.onclick || className.includes('click') || className.includes('button')) {
       return 'interactive_element';
     }
@@ -226,6 +230,10 @@ class ProductionLogger {
         // Verificar se form foi processado
         return this.checkForFormResponse();
         
+      case 'file_upload':
+        // File uploads são considerados respondidos automaticamente (evita dead click falso)
+        return true;
+        
       default:
         // Verificações gerais
         return this.checkForGeneralResponse(clickTime);
@@ -276,7 +284,7 @@ class ProductionLogger {
 
   private handleJSError(event: ErrorEvent) {
     this.logEvent({
-      type: 'error',
+      type: 'javascript_error', // Diferenciando logs de erro JavaScript especificamente
       severity: 'high',
       message: `JavaScript Error: ${event.message}`,
       details: {
@@ -416,6 +424,25 @@ class ProductionLogger {
     }
   }
 
+  /**
+   * Método utilitário para garantir que className sempre seja tratado como string
+   * Evita erros do tipo "className.includes is not a function" em elementos SVG ou outros tipos
+   */
+  private getSafeClassName(element: HTMLElement | Element): string {
+    // Verificar se className existe e é uma string
+    if (typeof element.className === 'string') {
+      return element.className;
+    }
+    
+    // Para elementos SVG, className pode ser um SVGAnimatedString
+    if (element.className && typeof element.className === 'object' && 'baseVal' in element.className) {
+      return (element.className as SVGAnimatedString).baseVal || '';
+    }
+    
+    // Fallback: retornar string vazia se className não existir ou não for string
+    return '';
+  }
+
   private getCurrentUserId(): string | undefined {
     // Tentar obter ID do usuário do localStorage ou context
     try {
@@ -438,8 +465,10 @@ class ProductionLogger {
     const path = [];
     while (element.nodeType === Node.ELEMENT_NODE) {
       let selector = element.nodeName.toLowerCase();
-      if (element.className) {
-        selector += `.${element.className.split(' ').join('.')}`;
+      // Usar getSafeClassName para evitar quebras em objetos SVG ou outros tipos
+      const className = this.getSafeClassName(element);
+      if (className) {
+        selector += `.${className.split(' ').join('.')}`;
       }
       path.unshift(selector);
       element = element.parentNode as HTMLElement;
