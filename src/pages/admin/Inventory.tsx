@@ -86,6 +86,22 @@ export default function AdminInventory() {
 
   useEffect(() => {
     loadData();
+
+    // Real-time subscription para mudanças nos produtos (estoque)
+    const subscription = supabase
+      .channel('inventory-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'products' }, 
+        (payload) => {
+          console.log('Produto/estoque atualizado em tempo real:', payload);
+          loadData(); // Recarregar dados quando houver mudanças
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [loadData]);
 
   const handleStockMovement = async () => {

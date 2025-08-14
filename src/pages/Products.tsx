@@ -39,6 +39,13 @@ interface Product {
   sale_price?: number; // opcional: se existir, usar como preço efetivo
 }
 
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  product_count?: number;
+}
+
 const Products = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState("relevance");
@@ -46,6 +53,7 @@ const Products = () => {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
@@ -54,9 +62,54 @@ const Products = () => {
   const [onlyOnSale, setOnlyOnSale] = useState(false);
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get('search') || '';
+  const categoryParam = searchParams.get('category') || '';
+
+  // Handle URL category parameter
+  useEffect(() => {
+    if (categoryParam && !selectedCategories.includes(categoryParam)) {
+      setSelectedCategories(prev => [...prev, categoryParam]);
+    }
+  }, [categoryParam, selectedCategories]);
 
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
+
+    // Set up real-time subscription for products
+    const productsSubscription = supabase
+      .channel('products-page-changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'products' 
+        }, 
+        (payload) => {
+          console.log('Produto atualizado na página de produtos:', payload);
+          // Refetch products when any change occurs
+          fetchProducts();
+          fetchCategories(); // Also update category counts
+        }
+      )
+      .subscribe();
+
+    // Set up real-time subscription for categories
+    const categoriesSubscription = supabase
+      .channel('categories-products-page-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'categories' }, 
+        (payload) => {
+          console.log('Categoria atualizada na página de produtos:', payload);
+          fetchCategories();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      productsSubscription.unsubscribe();
+      categoriesSubscription.unsubscribe();
+    };
   }, []);
 
   const filterAndSortProducts = useCallback(() => {
@@ -161,6 +214,37 @@ const Products = () => {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const { data: categoriesData, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('active', true)
+        .order('sort_order', { ascending: true });
+
+      if (error) throw error;
+
+      // Para cada categoria, contar produtos
+      const categoriesWithCount = await Promise.all(
+        (categoriesData || []).map(async (category) => {
+          const { count } = await supabase
+            .from('products')
+            .select('*', { count: 'exact', head: true })
+            .eq('category', category.slug);
+          
+          return {
+            ...category,
+            product_count: count || 0
+          };
+        })
+      );
+
+      setCategories(categoriesWithCount);
+    } catch (error) {
+      console.error('Erro ao carregar categorias:', error);
+    }
+  };
+
   const handleMaterialChange = (material: string, checked: boolean) => {
     if (checked) {
       setSelectedMaterials([...selectedMaterials, material]);
@@ -180,13 +264,6 @@ const Products = () => {
       setSelectedCategories(selectedCategories.filter(c => c !== category));
     }
   };
-
-  const categories = [
-    { name: "Pets", count: 150 },
-    { name: "Casa", count: 200 },
-    { name: "Jardim", count: 100 },
-    { name: "Personalização 3D", count: 50 },
-  ];
 
   const materials = [
     { name: "PLA", count: 120 },
@@ -282,17 +359,17 @@ const Products = () => {
                   </CollapsibleTrigger>
                   <CollapsibleContent className="space-y-2 mt-3">
                     {categories.map((category) => (
-                      <div key={category.name} className="flex items-center space-x-2">
+                      <div key={category.slug} className="flex items-center space-x-2">
                         <Checkbox 
-                          id={category.name}
-                          checked={selectedCategories.includes(category.name)}
-                          onCheckedChange={(checked) => handleCategoryChange(category.name, checked as boolean)}
+                          id={category.slug}
+                          checked={selectedCategories.includes(category.slug)}
+                          onCheckedChange={(checked) => handleCategoryChange(category.slug, checked as boolean)}
                         />
-                        <Label htmlFor={category.name} className="flex-1 text-sm">
+                        <Label htmlFor={category.slug} className="flex-1 text-sm">
                           {category.name}
                         </Label>
                         <span className="text-xs text-muted-foreground">
-                          ({products.filter(p => p.category === category.name).length})
+                          ({category.product_count || 0})
                         </span>
                       </div>
                     ))}

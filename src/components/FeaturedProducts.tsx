@@ -52,6 +52,28 @@ const FeaturedProducts = () => {
   useEffect(() => {
     fetchProducts();
     fetchMyMiniFactoryProducts();
+
+    // Set up real-time subscription for products
+    const subscription = supabase
+      .channel('products-changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'products' 
+        }, 
+        (payload) => {
+          console.log('Produto atualizado em tempo real:', payload);
+          // Refetch products when any change occurs
+          fetchProducts();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchProducts = async () => {

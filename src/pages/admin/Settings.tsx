@@ -62,16 +62,51 @@ export default function AdminSettings() {
   useEffect(() => {
     loadSettings();
     loadAdminUsers();
+
+    // Real-time subscription para mudanças nas configurações
+    const subscription = supabase
+      .channel('settings-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'settings' }, 
+        (payload) => {
+          console.log('Configuração atualizada em tempo real:', payload);
+          loadSettings(); // Recarregar configurações quando houver mudanças
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loadSettings = async () => {
     try {
-      // Por enquanto, usar configurações padrão
-      // Em produção, você salvaria essas configurações em uma tabela 'settings'
-      setLoading(false);
+      setLoading(true);
+
+      // Carregar configurações do Supabase
+      const { data: settingsData, error } = await supabase
+        .from('settings')
+        .select('key, value');
+
+      if (error) throw error;
+
+      // Converter para objeto de configurações
+      const settingsObject: Partial<AdminSettings> = {};
+      settingsData.forEach(setting => {
+        // Parse JSON values
+        try {
+          settingsObject[setting.key as keyof AdminSettings] = JSON.parse(setting.value);
+        } catch {
+          settingsObject[setting.key as keyof AdminSettings] = setting.value;
+        }
+      });
+
+      setSettings(prev => ({ ...prev, ...settingsObject }));
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
-      toast.error('Erro ao carregar configurações');
+      // Manter configurações padrão em caso de erro
+    } finally {
       setLoading(false);
     }
   };
@@ -101,9 +136,35 @@ export default function AdminSettings() {
     try {
       setSaving(true);
       
-      // Simular salvamento das configurações
-      // Em produção, você salvaria em uma tabela 'settings'
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Salvar cada configuração individualmente
+      const settingsToSave = [
+        { key: 'store_name', value: JSON.stringify(settings.store_name) },
+        { key: 'store_description', value: JSON.stringify(settings.store_description) },
+        { key: 'contact_email', value: JSON.stringify(settings.contact_email) },
+        { key: 'contact_phone', value: JSON.stringify(settings.contact_phone) },
+        { key: 'store_address', value: JSON.stringify(settings.store_address) },
+        { key: 'currency', value: JSON.stringify(settings.currency) },
+        { key: 'tax_rate', value: settings.tax_rate.toString() },
+        { key: 'shipping_fee', value: settings.shipping_fee.toString() },
+        { key: 'free_shipping_threshold', value: settings.free_shipping_threshold.toString() },
+        { key: 'maintenance_mode', value: settings.maintenance_mode.toString() },
+        { key: 'allow_guest_checkout', value: settings.allow_guest_checkout.toString() },
+        { key: 'require_email_verification', value: settings.require_email_verification.toString() }
+      ];
+
+      // Atualizar todas as configurações
+      for (const setting of settingsToSave) {
+        const { error } = await supabase
+          .from('settings')
+          .upsert({ 
+            key: setting.key, 
+            value: setting.value 
+          }, { 
+            onConflict: 'key' 
+          });
+
+        if (error) throw error;
+      }
       
       toast.success('Configurações salvas com sucesso');
     } catch (error) {

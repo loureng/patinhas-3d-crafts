@@ -76,6 +76,22 @@ export default function AdminOrders() {
 
   useEffect(() => {
     loadOrders();
+
+    // Real-time subscription para mudanças nos pedidos
+    const subscription = supabase
+      .channel('orders-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'orders' }, 
+        (payload) => {
+          console.log('Pedido atualizado em tempo real:', payload);
+          loadOrders(); // Recarregar dados quando houver mudanças
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [loadOrders]);
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {

@@ -63,6 +63,22 @@ export default function AdminCoupons() {
 
   useEffect(() => {
     loadCoupons();
+
+    // Real-time subscription para mudanças nos cupons
+    const subscription = supabase
+      .channel('coupons-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'coupons' }, 
+        (payload) => {
+          console.log('Cupom atualizado em tempo real:', payload);
+          loadCoupons(); // Recarregar dados quando houver mudanças
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [loadCoupons]);
 
   const generateCouponCode = () => {
