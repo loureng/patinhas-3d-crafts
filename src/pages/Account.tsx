@@ -48,6 +48,27 @@ const Account = () => {
 
     if (user) {
       fetchOrders();
+
+      // Real-time subscription para pedidos do usuário
+      const subscription = supabase
+        .channel('user-orders-changes')
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'orders',
+            filter: `user_id=eq.${user.id}`
+          }, 
+          (payload) => {
+            console.log('Pedido do usuário atualizado:', payload);
+            fetchOrders(); // Recarregar pedidos quando houver mudanças
+          }
+        )
+        .subscribe();
+
+      return () => {
+        subscription.unsubscribe();
+      };
     }
   }, [user]);
 

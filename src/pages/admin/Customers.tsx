@@ -73,6 +73,22 @@ export default function AdminCustomers() {
 
   useEffect(() => {
     loadCustomers();
+
+    // Real-time subscription para mudanças nos perfis de clientes
+    const subscription = supabase
+      .channel('customers-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'profiles' }, 
+        (payload) => {
+          console.log('Cliente atualizado em tempo real:', payload);
+          loadCustomers(); // Recarregar dados quando houver mudanças
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [loadCustomers]);
 
   const loadCustomerOrders = async (userId: string) => {

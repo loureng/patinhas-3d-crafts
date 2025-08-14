@@ -216,6 +216,46 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadDashboardData();
+
+    // Real-time subscriptions para atualizações em tempo real do dashboard
+    const ordersSubscription = supabase
+      .channel('dashboard-orders-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'orders' }, 
+        (payload) => {
+          console.log('Pedido atualizado no dashboard:', payload);
+          loadDashboardData(); // Recarregar métricas quando houver mudanças
+        }
+      )
+      .subscribe();
+
+    const productsSubscription = supabase
+      .channel('dashboard-products-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'products' }, 
+        (payload) => {
+          console.log('Produto atualizado no dashboard:', payload);
+          loadDashboardData(); // Recarregar métricas quando houver mudanças
+        }
+      )
+      .subscribe();
+
+    const profilesSubscription = supabase
+      .channel('dashboard-profiles-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'profiles' }, 
+        (payload) => {
+          console.log('Cliente atualizado no dashboard:', payload);
+          loadDashboardData(); // Recarregar métricas quando houver mudanças
+        }
+      )
+      .subscribe();
+
+    return () => {
+      ordersSubscription.unsubscribe();
+      productsSubscription.unsubscribe();
+      profilesSubscription.unsubscribe();
+    };
   }, [loadDashboardData]);
 
   const calculateSalesByMonth = (orders: Order[]) => {

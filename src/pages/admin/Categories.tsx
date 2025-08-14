@@ -47,6 +47,22 @@ export default function AdminCategories() {
 
   useEffect(() => {
     loadCategories();
+
+    // Configurar real-time subscription para categories
+    const subscription = supabase
+      .channel('categories-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'categories' }, 
+        (payload) => {
+          console.log('Categoria atualizada em tempo real:', payload);
+          loadCategories(); // Recarregar dados quando houver mudanças
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loadCategories = async () => {

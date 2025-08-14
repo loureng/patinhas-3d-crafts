@@ -1,10 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { ReportsFilters } from '@/components/admin/reports/ReportsFilters';
 import { MetricsCards } from '@/components/admin/reports/MetricsCards';
 import { SalesChart } from '@/components/admin/reports/SalesChart';
 import { TopProductsTable } from '@/components/admin/reports/TopProductsTable';
 import { ExportButton } from '@/components/admin/reports/ExportButton';
 import { useReportsData } from '@/hooks/useReports';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   filterSalesData, 
   calculateSalesMetrics, 
@@ -15,6 +17,7 @@ import {
 
 export default function Reports() {
   const [filters, setFilters] = useState<IReportFilters>({});
+  const queryClient = useQueryClient();
   
   // Buscar dados com filtros aplicados no backend quando possível
   const { 
@@ -22,6 +25,37 @@ export default function Reports() {
     isLoading, 
     error 
   } = useReportsData(filters);
+
+  // Real-time subscription para invalidar queries quando dados mudarem
+  useEffect(() => {
+    const ordersSubscription = supabase
+      .channel('reports-orders-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'orders' }, 
+        (payload) => {
+          console.log('Pedido atualizado no relatório:', payload);
+          // Invalidar query para refetch automático
+          queryClient.invalidateQueries({ queryKey: ['reports-data'] });
+        }
+      )
+      .subscribe();
+
+    const orderItemsSubscription = supabase
+      .channel('reports-order-items-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'order_items' }, 
+        (payload) => {
+          console.log('Item de pedido atualizado no relatório:', payload);
+          queryClient.invalidateQueries({ queryKey: ['reports-data'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      ordersSubscription.unsubscribe();
+      orderItemsSubscription.unsubscribe();
+    };
+  }, [queryClient]);
 
   // Processamento dos dados para relatórios
   const processedData = useMemo(() => {

@@ -76,6 +76,43 @@ const Checkout = () => {
       return;
     }
 
+    // Validate product availability before checkout
+    try {
+      setLoading(true);
+      
+      // Check stock for all items in cart
+      for (const item of items) {
+        const { data: product, error } = await supabase
+          .from('products')
+          .select('stock, name')
+          .eq('id', item.id)
+          .single();
+
+        if (error) {
+          throw new Error(`Erro ao verificar disponibilidade do produto: ${item.name}`);
+        }
+
+        if (!product || (product.stock !== null && product.stock < item.quantity)) {
+          toast({
+            title: "Produto indisponível",
+            description: `O produto "${item.name}" não tem estoque suficiente. Estoque atual: ${product?.stock || 0}`,
+            variant: "destructive"
+          });
+          setLoading(false);
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Stock validation error:', error);
+      toast({
+        title: "Erro de validação",
+        description: "Erro ao verificar disponibilidade dos produtos. Tente novamente.",
+        variant: "destructive"
+      });
+      setLoading(false);
+      return;
+    }
+
     // Validate address
     const addressValidation = validateAddress({
       cep: shippingInfo.zipCode,
