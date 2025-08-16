@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,7 +15,7 @@ import { toast } from '@/hooks/use-toast';
 import { fetchCepData, validateAddress } from '@/services/cepAPI';
 import { calculateShipping, getWeightWithFallback } from '@/services/shippingAPI';
 import { ShippingOption, ORIGIN_CEP } from '@/types/shipping';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MapPin, CreditCard, Truck, CheckCircle, AlertCircle, Package } from 'lucide-react';
 
 type Coupon = {
   code: string;
@@ -33,6 +35,7 @@ const Checkout = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1); // 1: Delivery, 2: Shipping, 3: Payment
   const [shippingInfo, setShippingInfo] = useState({
     name: '',
     email: user?.email || '',
@@ -69,139 +72,18 @@ const Checkout = () => {
     : 0;
   const totalWithDiscount = Math.max(0, total - discountAmount + shippingCost);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
+  // Remove the handleSubmit function since we're only using Mercado Pago
 
-    // Validate product availability before checkout
-    try {
-      setLoading(true);
-      
-      // Check stock for all items in cart
-      for (const item of items) {
-        const { data: product, error } = await supabase
-          .from('products')
-          .select('stock, name')
-          .eq('id', item.id)
-          .single();
-
-        if (error) {
-          throw new Error(`Erro ao verificar disponibilidade do produto: ${item.name}`);
-        }
-
-        if (!product || (product.stock !== null && product.stock < item.quantity)) {
-          toast({
-            title: "Produto indisponível",
-            description: `O produto "${item.name}" não tem estoque suficiente. Estoque atual: ${product?.stock || 0}`,
-            variant: "destructive"
-          });
-          setLoading(false);
-          return;
-        }
+  // Auto-calculate shipping when address is complete
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (shippingInfo.zipCode && shippingInfo.city && shippingInfo.state && shippingInfo.address) {
+        calculateShippingOptions();
       }
-    } catch (error) {
-      console.error('Stock validation error:', error);
-      toast({
-        title: "Erro de validação",
-        description: "Erro ao verificar disponibilidade dos produtos. Tente novamente.",
-        variant: "destructive"
-      });
-      setLoading(false);
-      return;
-    }
+    }, 1000); // Debounce
 
-    // Validate address
-    const addressValidation = validateAddress({
-      cep: shippingInfo.zipCode,
-      address: shippingInfo.address,
-      city: shippingInfo.city,
-      state: shippingInfo.state,
-      number: shippingInfo.number
-    });
-
-    if (!addressValidation.isValid) {
-      toast({
-        title: "Endereço inválido",
-        description: addressValidation.errors.join(', '),
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Validate shipping selection
-    if (!selectedShipping || !selectedShippingOption) {
-      toast({
-        title: "Selecione uma opção de frete",
-        description: "É necessário escolher uma modalidade de entrega.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      // Create order with enhanced shipping data
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          user_id: user.id,
-          total_amount: totalWithDiscount,
-          status: 'pending',
-          shipping_address: {
-            ...shippingInfo,
-            coupon: appliedCoupon?.code || null,
-            discount: Number(discountAmount.toFixed(2)),
-            shipping: {
-              option_id: selectedShipping,
-              name: selectedShippingOption.name,
-              carrier: selectedShippingOption.carrier,
-              price: selectedShippingOption.price,
-              delivery_time: selectedShippingOption.deliveryTime,
-              description: selectedShippingOption.description
-            }
-          }
-        })
-        .select()
-        .single();
-
-      if (orderError || !order) throw orderError;
-
-      // Create order items
-      const orderItems = items.map(item => ({
-        order_id: order.id,
-        product_id: item.id,
-        quantity: item.quantity,
-        price: item.price,
-        customization: item.customization
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
-
-      if (itemsError) throw itemsError;
-
-      clearCart();
-      toast({
-        title: "Pedido realizado com sucesso!",
-        description: `Pedido #${order.id.slice(0, 8)} foi criado. Entrega via ${selectedShippingOption.name} em ${selectedShippingOption.deliveryTime}.`
-      });
-      navigate('/account/orders');
-    } catch (error) {
-      console.error('Checkout error:', error);
-      toast({
-        title: "Erro no checkout",
-        description: "Ocorreu um erro ao processar seu pedido. Tente novamente.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    return () => clearTimeout(timer);
+  }, [shippingInfo.zipCode, shippingInfo.city, shippingInfo.state, shippingInfo.address]);
 
   const searchAddress = async () => {
     if (!shippingInfo.zipCode || shippingInfo.zipCode.length < 8) return;
@@ -218,10 +100,16 @@ const Checkout = () => {
           state: data.uf
         }));
 
-        // Trigger shipping calculation after address is populated
-        if (data.localidade && data.uf) {
-          calculateShippingOptions();
-        }
+        toast({
+          title: "Endereço encontrado!",
+          description: `${data.logradouro}, ${data.localidade} - ${data.uf}`,
+        });
+      } else {
+        toast({
+          title: "CEP não encontrado",
+          description: "Verifique o CEP e tente novamente.",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error('Error fetching address:', error);
@@ -271,6 +159,11 @@ const Checkout = () => {
         // Auto-select the cheapest option
         setSelectedShipping(result.options[0].id);
         setShippingCalculated(true);
+        setCurrentStep(2); // Move to shipping step
+        toast({
+          title: "Frete calculado!",
+          description: `${result.options.length} opções disponíveis`,
+        });
       } else {
         throw new Error(result.error || 'Não foi possível calcular o frete');
       }
@@ -372,6 +265,30 @@ const Checkout = () => {
       return;
     }
     
+    // Validate required fields
+    const requiredFields = [
+      { field: shippingInfo.name, name: 'Nome completo' },
+      { field: shippingInfo.email, name: 'Email' },
+      { field: shippingInfo.phone, name: 'Telefone' },
+      { field: shippingInfo.zipCode, name: 'CEP' },
+      { field: shippingInfo.address, name: 'Endereço' },
+      { field: shippingInfo.number, name: 'Número' },
+      { field: shippingInfo.city, name: 'Cidade' },
+      { field: shippingInfo.state, name: 'Estado' },
+    ];
+
+    for (const { field, name } of requiredFields) {
+      if (!field) {
+        toast({
+          title: "Campo obrigatório",
+          description: `Por favor, preencha o campo: ${name}`,
+          variant: "destructive"
+        });
+        setCurrentStep(1);
+        return;
+      }
+    }
+
     // Validate shipping selection
     if (!selectedShipping || !selectedShippingOption) {
       toast({
@@ -379,6 +296,7 @@ const Checkout = () => {
         description: "É necessário escolher uma modalidade de entrega.",
         variant: "destructive"
       });
+      setCurrentStep(2);
       return;
     }
 
@@ -442,15 +360,25 @@ const Checkout = () => {
         currency_id: 'BRL',
       }));
 
+      // URLs de retorno para desenvolvimento e produção
       const baseUrl = window.location.origin;
+      const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1');
+      
+      // Em desenvolvimento, usar URLs de produção temporárias para testes
+      const backUrls = isLocalhost ? {
+        success: 'https://jardim-das-patinhas.vercel.app/payment/success',
+        failure: 'https://jardim-das-patinhas.vercel.app/payment/failure', 
+        pending: 'https://jardim-das-patinhas.vercel.app/payment/pending',
+      } : {
+        success: `${baseUrl}/payment/success`,
+        failure: `${baseUrl}/payment/failure`,
+        pending: `${baseUrl}/payment/pending`,
+      };
+
       const { data, error } = await supabase.functions.invoke('create-payment-preference', {
         body: {
           items: mpItems,
-          back_urls: {
-            success: `${baseUrl}/payment/success`,
-            failure: `${baseUrl}/payment/failure`,
-            pending: `${baseUrl}/payment/pending`,
-          },
+          back_urls: backUrls,
           auto_return: 'approved',
           external_reference: order.id,
         },
@@ -472,13 +400,17 @@ const Checkout = () => {
         // Show success feedback before redirecting
         toast({ 
           title: 'Redirecionando para pagamento...', 
-          description: 'Você será redirecionado para o Mercado Pago em instantes.' 
+          description: 'Você será redirecionado para o Mercado Pago em instantes.',
+          duration: 2000
         });
+        
+        // Clear cart before redirecting
+        clearCart();
         
         // Small delay to show the toast
         setTimeout(() => {
           window.location.href = redirectUrl;
-        }, 1500);
+        }, 2000);
       } else {
         toast({ title: 'Erro ao iniciar pagamento', description: 'URL de pagamento não retornada.', variant: 'destructive' });
       }
@@ -501,257 +433,357 @@ const Checkout = () => {
     }
   };
 
+  const StepIndicator = () => (
+    <div className="flex items-center justify-center mb-8">
+      <div className="flex items-center space-x-4">
+        <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+          currentStep >= 1 ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground text-muted-foreground'
+        }`}>
+          {currentStep > 1 ? <CheckCircle className="h-5 w-5" /> : <MapPin className="h-5 w-5" />}
+        </div>
+        <div className={`text-sm font-medium ${currentStep >= 1 ? 'text-primary' : 'text-muted-foreground'}`}>
+          Dados de Entrega
+        </div>
+        
+        <div className={`w-8 h-0.5 ${currentStep >= 2 ? 'bg-primary' : 'bg-muted'}`} />
+        
+        <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+          currentStep >= 2 ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground text-muted-foreground'
+        }`}>
+          {currentStep > 2 ? <CheckCircle className="h-5 w-5" /> : <Truck className="h-5 w-5" />}
+        </div>
+        <div className={`text-sm font-medium ${currentStep >= 2 ? 'text-primary' : 'text-muted-foreground'}`}>
+          Entrega
+        </div>
+        
+        <div className={`w-8 h-0.5 ${currentStep >= 3 ? 'bg-primary' : 'bg-muted'}`} />
+        
+        <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+          currentStep >= 3 ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground text-muted-foreground'
+        }`}>
+          <CreditCard className="h-5 w-5" />
+        </div>
+        <div className={`text-sm font-medium ${currentStep >= 3 ? 'text-primary' : 'text-muted-foreground'}`}>
+          Pagamento
+        </div>
+      </div>
+    </div>
+  );
+
   if (items.length === 0) {
     navigate('/cart');
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
       <Header />
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8">Finalizar Compra</h1>
-        
-        <div className="grid lg:grid-cols-2 gap-8">
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Informações de Entrega</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="name">Nome Completo</Label>
-                      <Input
-                        id="name"
-                        required
-                        value={shippingInfo.name}
-                        onChange={(e) => setShippingInfo(prev => ({ ...prev, name: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        required
-                        value={shippingInfo.email}
-                        onChange={(e) => setShippingInfo(prev => ({ ...prev, email: e.target.value }))}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="phone">Telefone</Label>
-                    <Input
-                      id="phone"
-                      required
-                      value={shippingInfo.phone}
-                      onChange={(e) => setShippingInfo(prev => ({ ...prev, phone: e.target.value }))}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="zipCode">CEP</Label>
-                      <Input
-                        id="zipCode"
-                        required
-                        value={shippingInfo.zipCode}
-                        onChange={(e) => setShippingInfo(prev => ({ ...prev, zipCode: e.target.value }))}
-                        onBlur={searchAddress}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="city">Cidade</Label>
-                      <Input
-                        id="city"
-                        required
-                        value={shippingInfo.city}
-                        onChange={(e) => setShippingInfo(prev => ({ ...prev, city: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="state">Estado</Label>
-                      <Input
-                        id="state"
-                        required
-                        value={shippingInfo.state}
-                        onChange={(e) => setShippingInfo(prev => ({ ...prev, state: e.target.value }))}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-4 gap-4">
-                    <div className="col-span-3">
-                      <Label htmlFor="address">Endereço</Label>
-                      <Input
-                        id="address"
-                        required
-                        value={shippingInfo.address}
-                        onChange={(e) => setShippingInfo(prev => ({ ...prev, address: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="number">Número</Label>
-                      <Input
-                        id="number"
-                        required
-                        value={shippingInfo.number}
-                        onChange={(e) => setShippingInfo(prev => ({ ...prev, number: e.target.value }))}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="complement">Complemento</Label>
-                    <Input
-                      id="complement"
-                      value={shippingInfo.complement}
-                      onChange={(e) => setShippingInfo(prev => ({ ...prev, complement: e.target.value }))}
-                    />
-                  </div>
-
-                  {/* Shipping Options Section */}
-                  {shippingInfo.zipCode && shippingInfo.city && (
-                    <div className="space-y-4 border-t pt-4">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-base font-medium">Opções de Entrega</Label>
-                        {shippingLoading && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Calculando frete...
-                          </div>
-                        )}
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-4xl font-bold text-center mb-2">Finalizar Compra</h1>
+          <p className="text-muted-foreground text-center mb-8">Complete os dados para finalizar seu pedido</p>
+          
+          <StepIndicator />
+          
+          <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
+              {/* Delivery Information */}
+              <Card className="shadow-lg border-0">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <MapPin className="h-5 w-5 text-primary" />
+                    Informações de Entrega
+                    {currentStep > 1 && <Badge variant="secondary" className="ml-auto">Concluído</Badge>}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="name" className="text-sm font-medium">Nome Completo *</Label>
+                        <Input
+                          id="name"
+                          required
+                          value={shippingInfo.name}
+                          onChange={(e) => setShippingInfo(prev => ({ ...prev, name: e.target.value }))}
+                          className="mt-1"
+                          placeholder="Seu nome completo"
+                        />
                       </div>
-                      
-                      {!shippingLoading && shippingOptions.length > 0 && (
-                        <RadioGroup 
-                          value={selectedShipping} 
-                          onValueChange={setSelectedShipping}
-                          className="space-y-3"
-                        >
-                          {shippingOptions.map((option) => (
-                            <div key={option.id} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50">
-                              <RadioGroupItem value={option.id} id={option.id} />
-                              <Label htmlFor={option.id} className="flex-1 cursor-pointer">
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <p className="font-medium">{option.name}</p>
-                                    <p className="text-sm text-muted-foreground">{option.description}</p>
-                                    <p className="text-sm text-muted-foreground">Prazo: {option.deliveryTime}</p>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="font-bold">R$ {option.price.toFixed(2)}</p>
-                                    <p className="text-xs text-muted-foreground">{option.carrier}</p>
-                                  </div>
-                                </div>
-                              </Label>
-                            </div>
-                          ))}
-                        </RadioGroup>
-                      )}
-                      
-                      {!shippingLoading && shippingOptions.length === 0 && shippingInfo.zipCode && (
-                        <div className="text-center py-4 text-muted-foreground">
-                          <p>Preencha o endereço completo para calcular o frete</p>
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={calculateShippingOptions}
-                            className="mt-2"
-                          >
-                            Calcular Frete
-                          </Button>
+                      <div>
+                        <Label htmlFor="email" className="text-sm font-medium">Email *</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          required
+                          value={shippingInfo.email}
+                          onChange={(e) => setShippingInfo(prev => ({ ...prev, email: e.target.value }))}
+                          className="mt-1"
+                          placeholder="seu@email.com"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="phone" className="text-sm font-medium">Telefone *</Label>
+                      <Input
+                        id="phone"
+                        required
+                        value={shippingInfo.phone}
+                        onChange={(e) => setShippingInfo(prev => ({ ...prev, phone: e.target.value }))}
+                        className="mt-1"
+                        placeholder="(11) 99999-9999"
+                      />
+                    </div>
+
+                    <Separator />
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="zipCode" className="text-sm font-medium">CEP *</Label>
+                        <Input
+                          id="zipCode"
+                          required
+                          value={shippingInfo.zipCode}
+                          onChange={(e) => setShippingInfo(prev => ({ ...prev, zipCode: e.target.value }))}
+                          onBlur={searchAddress}
+                          className="mt-1"
+                          placeholder="00000-000"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="city" className="text-sm font-medium">Cidade *</Label>
+                        <Input
+                          id="city"
+                          required
+                          value={shippingInfo.city}
+                          onChange={(e) => setShippingInfo(prev => ({ ...prev, city: e.target.value }))}
+                          className="mt-1"
+                          placeholder="Sua cidade"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="state" className="text-sm font-medium">Estado *</Label>
+                        <Input
+                          id="state"
+                          required
+                          value={shippingInfo.state}
+                          onChange={(e) => setShippingInfo(prev => ({ ...prev, state: e.target.value }))}
+                          className="mt-1"
+                          placeholder="SP"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-4">
+                      <div className="col-span-3">
+                        <Label htmlFor="address" className="text-sm font-medium">Endereço *</Label>
+                        <Input
+                          id="address"
+                          required
+                          value={shippingInfo.address}
+                          onChange={(e) => setShippingInfo(prev => ({ ...prev, address: e.target.value }))}
+                          className="mt-1"
+                          placeholder="Rua, avenida, etc."
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="number" className="text-sm font-medium">Número *</Label>
+                        <Input
+                          id="number"
+                          required
+                          value={shippingInfo.number}
+                          onChange={(e) => setShippingInfo(prev => ({ ...prev, number: e.target.value }))}
+                          className="mt-1"
+                          placeholder="123"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="complement" className="text-sm font-medium">Complemento</Label>
+                      <Input
+                        id="complement"
+                        value={shippingInfo.complement}
+                        onChange={(e) => setShippingInfo(prev => ({ ...prev, complement: e.target.value }))}
+                        className="mt-1"
+                        placeholder="Apto, bloco, etc. (opcional)"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Shipping Options */}
+              {(shippingOptions.length > 0 || shippingLoading) && (
+                <Card className="shadow-lg border-0">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2 text-xl">
+                      <Truck className="h-5 w-5 text-primary" />
+                      Opções de Entrega
+                      {shippingLoading && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground ml-auto">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Calculando frete...
                         </div>
                       )}
+                      {selectedShipping && !shippingLoading && (
+                        <Badge variant="secondary" className="ml-auto">Selecionado</Badge>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {!shippingLoading && shippingOptions.length > 0 && (
+                      <RadioGroup 
+                        value={selectedShipping} 
+                        onValueChange={(value) => {
+                          setSelectedShipping(value);
+                          setCurrentStep(3);
+                        }}
+                        className="space-y-3"
+                      >
+                        {shippingOptions.map((option) => (
+                          <div key={option.id} className="flex items-center space-x-3 p-4 border-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                            <RadioGroupItem value={option.id} id={option.id} />
+                            <Label htmlFor={option.id} className="flex-1 cursor-pointer">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="font-semibold text-base">{option.name}</p>
+                                  <p className="text-sm text-muted-foreground">{option.description}</p>
+                                  <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                    <Package className="h-3 w-3" />
+                                    Prazo: {option.deliveryTime}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-bold text-lg text-green-600">R$ {option.price.toFixed(2)}</p>
+                                  <p className="text-xs text-muted-foreground">{option.carrier}</p>
+                                </div>
+                              </div>
+                            </Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    )}
+                    
+                    {!shippingLoading && shippingOptions.length === 0 && shippingInfo.zipCode && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                        <p className="text-lg font-medium">Preencha o endereço completo</p>
+                        <p className="text-sm">O frete será calculado automaticamente</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+            {/* Order Summary */}
+            <div className="lg:col-span-1">
+              <Card className="shadow-lg border-0 sticky top-4">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <Package className="h-5 w-5 text-primary" />
+                    Resumo do Pedido
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {items.map((item) => (
+                    <div key={`${item.id}-${JSON.stringify(item.customization)}`} className="flex justify-between items-start p-3 bg-muted/30 rounded-lg">
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{item.name}</p>
+                        <p className="text-xs text-muted-foreground">Quantidade: {item.quantity}</p>
+                        {item.customization && Object.keys(item.customization).length > 0 && (
+                          <p className="text-xs text-blue-600">Personalizado</p>
+                        )}
+                      </div>
+                      <p className="font-bold text-sm">R$ {(item.price * item.quantity).toFixed(2)}</p>
                     </div>
-                  )}
-
-                  <Button type="submit" className="w-full" size="lg" disabled={loading || !selectedShipping}>
-                    {loading ? 'Processando...' : 'Confirmar Pedido'}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Resumo do Pedido</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {items.map((item) => (
-                  <div key={`${item.id}-${JSON.stringify(item.customization)}`} className="flex justify-between">
-                    <div>
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">Qtd: {item.quantity}</p>
-                    </div>
-                    <p className="font-medium">R$ {(item.price * item.quantity).toFixed(2)}</p>
-                  </div>
-                ))}
-                
-                <div className="border-t pt-4 space-y-4">
+                  ))}
+                  
+                  <Separator />
+                  
                   <div>
-                    <Label htmlFor="coupon">Cupom de desconto</Label>
+                    <Label htmlFor="coupon" className="text-sm font-medium">Cupom de desconto</Label>
                     <div className="flex gap-2 mt-2">
                       <Input
                         id="coupon"
-                        placeholder="INSIRA O CUPOM"
+                        placeholder="CUPOM2024"
                         value={couponCode}
                         onChange={(e) => setCouponCode(e.target.value)}
+                        className="text-sm"
                       />
-                      <Button type="button" onClick={handleApplyCoupon} disabled={couponLoading || !couponCode}>
-                        {couponLoading ? 'Aplicando...' : 'Aplicar'}
+                      <Button 
+                        type="button" 
+                        onClick={handleApplyCoupon} 
+                        disabled={couponLoading || !couponCode}
+                        size="sm"
+                        variant="outline"
+                      >
+                        {couponLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Aplicar'}
                       </Button>
                     </div>
                     {appliedCoupon && (
-                      <p className="text-sm text-green-600 mt-1">
-                        Cupom aplicado: {appliedCoupon.code} (
-                        {appliedCoupon.discount_type === 'percentage'
-                          ? `${appliedCoupon.value}%`
-                          : `R$ ${Number(appliedCoupon.value).toFixed(2)}`}
-                        )
-                      </p>
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-2 mt-2">
+                        <p className="text-sm text-green-700 font-medium">
+                          ✓ Cupom aplicado: {appliedCoupon.code}
+                        </p>
+                        <p className="text-xs text-green-600">
+                          Desconto: {appliedCoupon.discount_type === 'percentage'
+                            ? `${appliedCoupon.value}%`
+                            : `R$ ${Number(appliedCoupon.value).toFixed(2)}`}
+                        </p>
+                      </div>
                     )}
                   </div>
 
-                  <div className="flex justify-between">
-                    <span>Subtotal</span>
-                    <span>R$ {total.toFixed(2)}</span>
-                  </div>
-
-                  {discountAmount > 0 && (
-                    <div className="flex justify-between text-green-600">
-                      <span>Desconto</span>
-                      <span>- R$ {discountAmount.toFixed(2)}</span>
-                    </div>
-                  )}
-
-                  <div className="flex justify-between">
-                    <span>Frete</span>
-                    <span>
-                      {selectedShippingOption ? (
-                        <div className="text-right">
-                          <div>R$ {selectedShippingOption.price.toFixed(2)}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {selectedShippingOption.name} - {selectedShippingOption.deliveryTime}
-                          </div>
-                        </div>
-                      ) : (
-                        shippingLoading ? 'Calculando...' : 'A calcular'
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex justify-between font-bold text-lg">
-                    <span>Total</span>
-                    <span>R$ {totalWithDiscount.toFixed(2)}</span>
-                  </div>
+                  <Separator />
 
                   <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Subtotal</span>
+                      <span>R$ {total.toFixed(2)}</span>
+                    </div>
+
+                    {discountAmount > 0 && (
+                      <div className="flex justify-between text-sm text-green-600">
+                        <span>Desconto</span>
+                        <span>- R$ {discountAmount.toFixed(2)}</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between text-sm">
+                      <span>Frete</span>
+                      <span>
+                        {selectedShippingOption ? (
+                          <div className="text-right">
+                            <div className="font-medium">R$ {selectedShippingOption.price.toFixed(2)}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {selectedShippingOption.name}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">
+                            {shippingLoading ? 'Calculando...' : 'A calcular'}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div className="flex justify-between font-bold text-lg">
+                      <span>Total</span>
+                      <span className="text-primary">R$ {totalWithDiscount.toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  {/* Payment Section */}
+                  <div className="pt-4 space-y-3">
+                    <div className="text-center">
+                      <CreditCard className="h-8 w-8 mx-auto text-primary mb-2" />
+                      <p className="text-sm font-medium text-muted-foreground">Pagamento Seguro</p>
+                    </div>
+                    
                     <Button 
                       type="button" 
                       onClick={handleMercadoPago}
@@ -762,19 +794,28 @@ const Checkout = () => {
                       {payLoading ? (
                         <div className="flex items-center gap-2">
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          Processando pagamento...
+                          Processando...
                         </div>
                       ) : (
-                        'Pagar com Mercado Pago'
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="h-4 w-4" />
+                          Finalizar Pagamento
+                        </div>
                       )}
                     </Button>
-                    <p className="text-xs text-muted-foreground text-center">
-                      PIX, Cartão de Crédito ou Boleto
-                    </p>
+                    
+                    <div className="text-center space-y-1">
+                      <p className="text-xs text-muted-foreground">
+                        💳 PIX • Cartão • Boleto
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        🔒 Pagamento processado pelo Mercado Pago
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>
