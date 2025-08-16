@@ -1,0 +1,126 @@
+name: 🤖 Autonomous Error Detection
+
+on:
+  schedule:
+    # Run every day at 2 AM UTC (23h in Brasília)
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Target URL to scan (optional)'
+        required: false
+        type: string
+      dry_run:
+        description: 'Run in dry-run mode (no issues created)'
+        required: false
+        type: boolean
+        default: false
+      max_pages:
+        description: 'Maximum pages to crawl'
+        required: false
+        type: number
+        default: 50
+
+jobs:
+  error-detection:
+    runs-on: ubuntu-latest
+    name: Detect and Report Errors
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: 📦 Install Dependencies
+        run: npm ci
+        
+      - name: 🎭 Install Playwright Browsers
+        run: npx playwright install chromium
+        
+      - name: 🏃 Run Error Detection System
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            npm run auto-issue:dry
+          else
+            npm run auto-issue
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BASE_URL: ${{ inputs.target_url || 'https://your-production-url.com' }}
+          DEBUG_MODE: false
+          SAVE_SCREENSHOTS: true
+          
+      - name: 📊 Upload Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: error-detection-reports
+          path: |
+            reports/
+            screenshots/
+          retention-days: 30
+          
+      - name: 📝 Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Find the latest report
+            const reportsDir = 'reports';
+            if (fs.existsSync(reportsDir)) {
+              const files = fs.readdirSync(reportsDir)
+                .filter(f => f.startsWith('summary-'))
+                .sort()
+                .reverse();
+                
+              if (files.length > 0) {
+                const summaryFile = path.join(reportsDir, files[0]);
+                const summary = fs.readFileSync(summaryFile, 'utf8');
+                
+                await github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: `## 🤖 Autonomous Error Detection Report\n\n\`\`\`\n${summary}\n\`\`\``
+                });
+              }
+            }
+            
+  notify-critical:
+    runs-on: ubuntu-latest
+    needs: error-detection
+    if: failure()
+    name: Notify Critical Issues
+    
+    steps:
+      - name: 🚨 Send Critical Alert
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 CRITICAL: Autonomous Error Detection System Failed',
+              body: `## System Failure Alert
+              
+              The autonomous error detection system failed during execution.
+              
+              **Workflow:** ${context.workflow}
+              **Run ID:** ${context.runId}
+              **Trigger:** ${context.eventName}
+              **Time:** ${new Date().toISOString()}
+              
+              Please check the workflow logs immediately and ensure the system is working properly.
+              
+              [View Workflow Run](${context.payload.repository.html_url}/actions/runs/${context.runId})`,
+              labels: ['critical', 'system-failure', 'automation']
+            });
