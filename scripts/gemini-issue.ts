@@ -326,7 +326,7 @@ ${error.stackTrace}
 }
 
 // CLI usage for testing
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   (async () => {
     const generator = new GeminiIssueGenerator();
     

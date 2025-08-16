@@ -374,7 +374,7 @@ ${report.failed.length > 0 ? `## Failures\n${report.failed.join('\n')}` : ''}
 }
 
 // CLI usage
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   (async () => {
     try {
       // Parse command line arguments

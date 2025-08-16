@@ -315,7 +315,7 @@ export class ErrorCrawler {
           const nodes = document.querySelectorAll(selector);
           nodes.forEach((node, index) => {
             const text = node.textContent?.trim() || '';
-            const href = node.getAttribute('href');
+            const href = node.getAttribute('href') || undefined;
             elements.push({
               selector: `${selector}:nth-of-type(${index + 1})`,
               text: text.substring(0, 50),
@@ -494,7 +494,7 @@ export class ErrorCrawler {
 }
 
 // CLI usage
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   (async () => {
     try {
       const crawler = new ErrorCrawler({
