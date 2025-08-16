@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Error Detection System
+reports/
+screenshots/
+errors-*.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
